@@ -21,11 +21,11 @@ export default function Footer() {
 
 const s = {
   footer: { background: '#1a1a1a', color: 'white', marginTop: 'auto' },
-  wrap:   { maxWidth: 1100, margin: '0 auto', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
-  left:   { display: 'flex', alignItems: 'center', gap: 16 },
-  brand:  { display: 'flex', alignItems: 'center', gap: 8 },
-  icon:   { width: 28, height: 28, borderRadius: 8, background: '#C8272D', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  wrap: { maxWidth: 1100, margin: '0 auto', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
+  left: { display: 'flex', alignItems: 'center', gap: 16 },
+  brand: { display: 'flex', alignItems: 'center', gap: 8 },
+  icon: { width: 28, height: 28, borderRadius: 8, background: '#C8272D', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   brandTxt: { fontWeight: 700, fontSize: 14, color: 'white' },
-  desc:   { color: '#888', fontSize: 12, maxWidth: 280 },
-  copy:   { fontSize: 12, color: '#888' },
+  desc: { color: '#888', fontSize: 12, maxWidth: 280 },
+  copy: { fontSize: 12, color: '#888' },
 };

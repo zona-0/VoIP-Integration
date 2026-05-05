@@ -2,10 +2,10 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 const NAV = [
-  { label: 'Beranda',  path: '/' },
+  { label: 'Beranda', path: '/' },
   { label: 'Dial Pad', path: '/dialpad' },
   { label: 'Call Log', path: '/calllog' },
-  { label: 'Tentang',    path: '/about' },
+  { label: 'Tentang', path: '/about' },
 ];
 
 export default function Navbar() {
@@ -67,21 +67,21 @@ export default function Navbar() {
 }
 
 const s = {
-  nav:     { background: 'var(--red-primary)', boxShadow: '0 2px 12px rgba(200,39,45,.3)', position: 'sticky', top: 0, zIndex: 100 },
-  wrap:    { maxWidth: 1100, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', gap: 24 },
-  brand:   { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 },
-  logo:    { width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  nav: { background: 'var(--red-primary)', boxShadow: '0 2px 12px rgba(200,39,45,.3)', position: 'sticky', top: 0, zIndex: 100 },
+  wrap: { maxWidth: 1100, margin: '0 auto', padding: '0 24px', height: 60, display: 'flex', alignItems: 'center', gap: 24 },
+  brand: { display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 },
+  logo: { width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   brandTxt:{ color: 'white', fontWeight: 700, fontSize: 16 },
-  links:   { display: 'flex', gap: 4, flex: 1 },
-  link:    { color: 'rgba(255,255,255,.8)', padding: '6px 14px', borderRadius: 8, fontWeight: 500, fontSize: 14 },
-  active:  { color: 'white', background: 'rgba(255,255,255,.2)', fontWeight: 600 },
-  right:   { display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 },
-  num:     { color: 'rgba(255,255,255,.8)', fontSize: 13, fontWeight: 500 },
-  out:     { background: 'rgba(255,255,255,.15)', color: 'white', border: '1px solid rgba(255,255,255,.3)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
-  burger:  { display: 'none', flexDirection: 'column', gap: 5, background: 'none', padding: 4, cursor: 'pointer', marginLeft: 'auto' },
-  bar:     { width: 22, height: 2, background: 'white', borderRadius: 2, display: 'block' },
-  mobile:  { background: 'var(--red-dark)', display: 'flex', flexDirection: 'column', padding: '12px 16px', gap: 4 },
-  mLink:   { color: 'rgba(255,255,255,.85)', padding: '10px 14px', borderRadius: 8, fontWeight: 500, fontSize: 15 },
+  links: { display: 'flex', gap: 4, flex: 1 },
+  link: { color: 'rgba(255,255,255,.8)', padding: '6px 14px', borderRadius: 8, fontWeight: 500, fontSize: 14 },
+  active: { color: 'white', background: 'rgba(255,255,255,.2)', fontWeight: 600 },
+  right: { display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 },
+  num: { color: 'rgba(255,255,255,.8)', fontSize: 13, fontWeight: 500 },
+  out: { background: 'rgba(255,255,255,.15)', color: 'white', border: '1px solid rgba(255,255,255,.3)', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  burger: { display: 'none', flexDirection: 'column', gap: 5, background: 'none', padding: 4, cursor: 'pointer', marginLeft: 'auto' },
+  bar: { width: 22, height: 2, background: 'white', borderRadius: 2, display: 'block' },
+  mobile: { background: 'var(--red-dark)', display: 'flex', flexDirection: 'column', padding: '12px 16px', gap: 4 },
+  mLink: { color: 'rgba(255,255,255,.85)', padding: '10px 14px', borderRadius: 8, fontWeight: 500, fontSize: 15 },
   mActive: { background: 'rgba(255,255,255,.15)', color: 'white', fontWeight: 600 },
-  mOut:    { background: 'rgba(255,255,255,.15)', color: 'white', border: 'none', borderRadius: 8, padding: '10px 14px', fontSize: 15, fontWeight: 600, cursor: 'pointer', textAlign: 'left', marginTop: 8 },
+  mOut: { background: 'rgba(255,255,255,.15)', color: 'white', border: 'none', borderRadius: 8, padding: '10px 14px', fontSize: 15, fontWeight: 600, cursor: 'pointer', textAlign: 'left', marginTop: 8 },
 };

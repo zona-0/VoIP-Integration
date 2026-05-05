@@ -1,13 +1,12 @@
 require('dotenv').config();
 const express = require('express');
-const cors    = require('cors');
-const crypto  = require('crypto');
+const cors = require('cors');
+const crypto = require('crypto');
 const { Pool } = require('pg');
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ─── Database (Supabase PostgreSQL) ──────────────────────────────────────────
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -40,11 +39,10 @@ async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_call_logs_time
       ON call_logs(started_at DESC);
   `);
-  console.log('✅ Database tables ready');
+  console.log('Database ready');
 }
-initDB().catch(err => console.error('❌ DB init error:', err.message));
+initDB().catch(err => console.error('DB init error:', err.message));
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
@@ -60,12 +58,11 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// ─── JWT ──────────────────────────────────────────────────────────────────────
 const JWT_SECRET = process.env.JWT_SECRET || 'caas_dev_fallback_secret';
 
 function signToken(payload) {
   const data = JSON.stringify({ ...payload, iat: Date.now(), exp: Date.now() + 86400000 });
-  const sig  = crypto.createHmac('sha256', JWT_SECRET).update(data).digest('hex');
+  const sig = crypto.createHmac('sha256', JWT_SECRET).update(data).digest('hex');
   return Buffer.from(data).toString('base64') + '.' + sig;
 }
 
@@ -80,7 +77,6 @@ function verifyToken(token) {
   } catch { return null; }
 }
 
-// ─── Auth middleware ───────────────────────────────────────────────────────────
 function auth(req, res, next) {
   const h = req.headers.authorization;
   if (!h?.startsWith('Bearer '))
@@ -92,7 +88,6 @@ function auth(req, res, next) {
   next();
 }
 
-// ─── Mock users (aktif saat MOCK_MODE=true) ───────────────────────────────────
 const MOCK_USERS = {
   '081234567890': 'test1234',
   '082111222333': 'test1234',
@@ -101,15 +96,10 @@ const MOCK_USERS = {
 const MOCK_MODE = process.env.MOCK_MODE === 'true';
 
 if (MOCK_MODE) {
-  console.log('⚠️  MOCK MODE aktif — login tanpa Kamailio');
+  console.log('MOCK MODE aktif — login tanpa Kamailio');
   console.log('   User test:', Object.keys(MOCK_USERS).join(', '));
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  ROUTES
-// ══════════════════════════════════════════════════════════════════════════════
-
-// Health check
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
@@ -119,7 +109,6 @@ app.get('/api/health', async (_req, res) => {
   }
 });
 
-// Dev: lihat daftar mock users
 app.get('/api/dev/users', (_req, res) => {
   if (!MOCK_MODE) return res.status(404).json({ message: 'Hanya tersedia saat MOCK_MODE=true' });
   res.json({
@@ -128,7 +117,6 @@ app.get('/api/dev/users', (_req, res) => {
   });
 });
 
-// ── Login ──────────────────────────────────────────────────────────────────────
 app.post('/api/auth/login', async (req, res) => {
   const { number, password } = req.body;
 
@@ -137,7 +125,6 @@ app.post('/api/auth/login', async (req, res) => {
   if (!/^[0-9]{9,15}$/.test(number))
     return res.status(400).json({ success: false, message: 'Format nomor tidak valid' });
 
-  // Validasi login
   if (MOCK_MODE) {
     if (!MOCK_USERS[number] || MOCK_USERS[number] !== password)
       return res.status(401).json({
@@ -145,13 +132,11 @@ app.post('/api/auth/login', async (req, res) => {
         message: `[MOCK] Nomor/password salah. Coba: ${Object.keys(MOCK_USERS)[0]} / test1234`,
       });
   } else {
-    // TODO: ganti dengan validasi SIP REGISTER ke Kamailio
     if (password.length < 4)
       return res.status(401).json({ success: false, message: 'Password salah atau nomor tidak terdaftar di Kamailio' });
   }
 
   try {
-    // Server Kamailio diambil dari environment variable, bukan dari form
     const server = `${process.env.KAMAILIO_HOST || '192.168.1.100'}:${process.env.KAMAILIO_PORT || '5060'}`;
     await pool.query(
       `INSERT INTO users (number, server, updated_at)
@@ -166,12 +151,10 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// ── Verify token ───────────────────────────────────────────────────────────────
 app.get('/api/auth/verify', auth, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-// ── Get call log ───────────────────────────────────────────────────────────────
 app.get('/api/calls/log', auth, async (req, res) => {
   try {
     const { rows } = await pool.query(
@@ -190,7 +173,6 @@ app.get('/api/calls/log', auth, async (req, res) => {
   }
 });
 
-// ── Start call ─────────────────────────────────────────────────────────────────
 app.post('/api/calls/start', auth, async (req, res) => {
   const { targetNumber, callType } = req.body;
   if (!targetNumber)
@@ -209,7 +191,6 @@ app.post('/api/calls/start', auth, async (req, res) => {
   }
 });
 
-// ── End call ───────────────────────────────────────────────────────────────────
 app.post('/api/calls/end', auth, async (req, res) => {
   const { callId, targetNumber, duration, status } = req.body;
   try {
@@ -233,7 +214,6 @@ app.post('/api/calls/end', auth, async (req, res) => {
   }
 });
 
-// ── Delete call log ────────────────────────────────────────────────────────────
 app.delete('/api/calls/log/:id', auth, async (req, res) => {
   try {
     const { rowCount } = await pool.query(
@@ -248,8 +228,7 @@ app.delete('/api/calls/log/:id', auth, async (req, res) => {
   }
 });
 
-// ─── Start server ──────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`✅ CaaS O2 Backend berjalan di port ${PORT}`);
-  console.log(`   Mode: ${MOCK_MODE ? 'MOCK (testing)' : 'PRODUCTION'}`);
+  console.log(`port running ${PORT}`);
+  // console.log(`   Mode: ${MOCK_MODE ? 'MOCK (testing)' : 'PRODUCTION'}`);
 });

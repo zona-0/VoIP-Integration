@@ -117,15 +117,15 @@ function CallScreen({ number, callType, status, duration, onEnd, onSwitchToVideo
 }
 
 export default function DialPadPage() {
-  const [number,    setNumber]    = useState('');
-  const [inCall,    setInCall]    = useState(false);
-  const [callType,  setCallType]  = useState('voice');
-  const [status,    setStatus]    = useState('');
-  const [duration,  setDuration]  = useState(0);
-  const [callId,    setCallId]    = useState(null);
-  const [muted,     setMuted]     = useState(false);
+  const [number, setNumber] = useState('');
+  const [inCall, setInCall] = useState(false);
+  const [callType, setCallType] = useState('voice');
+  const [status, setStatus] = useState('');
+  const [duration, setDuration] = useState(0);
+  const [callId, setCallId] = useState(null);
+  const [muted, setMuted] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(false);
-  const [videoOn,   setVideoOn]   = useState(true);
+  const [videoOn, setVideoOn] = useState(true);
   const timer = useRef(null);
 
   useEffect(() => {
@@ -244,36 +244,36 @@ export default function DialPadPage() {
 }
 
 const s = {
-  page:    { display:'flex', flexDirection:'column', minHeight:'100vh', background:'#f5f5f5' },
-  main:    { flex:1, display:'flex', justifyContent:'center', padding:'32px 16px' },
-  card:    { background:'white', borderRadius:24, padding:'28px 24px', width:'100%', maxWidth:360, boxShadow:'0 8px 32px rgba(0,0,0,.10)', height:'fit-content' },
-  title:   { fontSize:20, fontWeight:800, color:'#222', textAlign:'center', marginBottom:4 },
-  sub:     { fontSize:13, color:'#aaa', textAlign:'center', marginBottom:20 },
-  disp:    { background:'#f8f8f8', borderRadius:14, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', minHeight:52, marginBottom:16, border:'1.5px solid #eee' },
-  dn:      { fontSize:28, fontWeight:700, color:'#222', letterSpacing:2, fontVariantNumeric:'tabular-nums' },
+  page: { display:'flex', flexDirection:'column', minHeight:'100vh', background:'#f5f5f5' },
+  main: { flex:1, display:'flex', justifyContent:'center', padding:'32px 16px' },
+  card: { background:'white', borderRadius:24, padding:'28px 24px', width:'100%', maxWidth:360, boxShadow:'0 8px 32px rgba(0,0,0,.10)', height:'fit-content' },
+  title: { fontSize:20, fontWeight:800, color:'#222', textAlign:'center', marginBottom:4 },
+  sub: { fontSize:13, color:'#aaa', textAlign:'center', marginBottom:20 },
+  disp: { background:'#f8f8f8', borderRadius:14, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', minHeight:52, marginBottom:16, border:'1.5px solid #eee' },
+  dn: { fontSize:28, fontWeight:700, color:'#222', letterSpacing:2, fontVariantNumeric:'tabular-nums' },
   delIcon: { background:'none', border:'none', cursor:'pointer', padding:6, display:'flex' },
-  pad:     { display:'flex', flexDirection:'column', gap:8, marginBottom:20 },
-  row:     { display:'flex', gap:8, justifyContent:'center' },
-  key:     { flex:1, maxWidth:96, height:58, background:'#fafafa', border:'1.5px solid #eee', borderRadius:14, fontSize:22, fontWeight:700, color:'#222', cursor:'pointer', transition:'background .12s', fontFamily:'inherit' },
-  btns:    { display:'flex', alignItems:'center', justifyContent:'center', gap:16 },
-  bsDel:   { width:48, height:48, borderRadius:14, background:'#f5f5f5', border:'1.5px solid #eee', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
+  pad: { display:'flex', flexDirection:'column', gap:8, marginBottom:20 },
+  row: { display:'flex', gap:8, justifyContent:'center' },
+  key: { flex:1, maxWidth:96, height:58, background:'#fafafa', border:'1.5px solid #eee', borderRadius:14, fontSize:22, fontWeight:700, color:'#222', cursor:'pointer', transition:'background .12s', fontFamily:'inherit' },
+  btns: { display:'flex', alignItems:'center', justifyContent:'center', gap:16 },
+  bsDel: { width:48, height:48, borderRadius:14, background:'#f5f5f5', border:'1.5px solid #eee', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
   voiceBtn:{ width:64, height:64, borderRadius:'50%', background:'#22C55E', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(34,197,94,.35)', transition:'opacity .15s' },
   videoBtn:{ width:64, height:64, borderRadius:'50%', background:'#3B82F6', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(59,130,246,.35)', transition:'opacity .15s' },
 };
 
 const sc = {
-  overlay:  { position:'fixed', inset:0, background:'linear-gradient(160deg,#7B0000 0%,#C8272D 60%,#8B0000 100%)', zIndex:999, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'48px 24px 48px' },
+  overlay: { position:'fixed', inset:0, background:'linear-gradient(160deg,#7B0000 0%,#C8272D 60%,#8B0000 100%)', zIndex:999, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'48px 24px 48px' },
   videoWrap:{ position:'relative', width:'100%', maxWidth:420, height:220, borderRadius:16, overflow:'hidden', background:'rgba(0,0,0,.25)', marginBottom:8 },
   remoteBox:{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center' },
   localBox: { position:'absolute', bottom:10, right:10, width:80, height:80, borderRadius:12, overflow:'hidden', background:'rgba(0,0,0,.4)', border:'2px solid rgba(255,255,255,.25)' },
   avatarWrap:{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 },
-  avatar:   { width:96, height:96, borderRadius:'50%', background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid rgba(255,255,255,.2)' },
-  badge:    { background:'rgba(255,255,255,.2)', color:'white', borderRadius:20, padding:'5px 16px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:6 },
-  info:     { textAlign:'center' },
-  num:      { fontSize:26, fontWeight:700, color:'white', marginBottom:6 },
-  stat:     { fontSize:15, color:'rgba(255,255,255,.8)', marginBottom:4 },
-  time:     { fontSize:20, fontWeight:600, color:'white', fontVariantNumeric:'tabular-nums' },
-  ctrlRow:  { display:'flex', alignItems:'center', justifyContent:'center', gap:20 },
-  ctrlBtn:  { width:56, height:56, borderRadius:'50%', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'background .2s' },
-  endBtn:   { width:66, height:66, borderRadius:'50%', background:'#FF3B30', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 20px rgba(255,59,48,.5)' },
+  avatar: { width:96, height:96, borderRadius:'50%', background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid rgba(255,255,255,.2)' },
+  badge: { background:'rgba(255,255,255,.2)', color:'white', borderRadius:20, padding:'5px 16px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:6 },
+  info: { textAlign:'center' },
+  num: { fontSize:26, fontWeight:700, color:'white', marginBottom:6 },
+  stat: { fontSize:15, color:'rgba(255,255,255,.8)', marginBottom:4 },
+  time: { fontSize:20, fontWeight:600, color:'white', fontVariantNumeric:'tabular-nums' },
+  ctrlRow: { display:'flex', alignItems:'center', justifyContent:'center', gap:20 },
+  ctrlBtn: { width:56, height:56, borderRadius:'50%', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'background .2s' },
+  endBtn: { width:66, height:66, borderRadius:'50%', background:'#FF3B30', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 20px rgba(255,59,48,.5)' },
 };
