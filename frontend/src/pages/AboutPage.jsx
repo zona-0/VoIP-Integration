@@ -31,7 +31,7 @@ export default function AboutPage() {
           </div>
           <div>
             <h2 style={s.uName}>{user.number || 'Pengguna'}</h2>
-            <p style={s.uRole}>SIP User — Kamailio VoIP</p>
+            {/* <p style={s.uRole}>SIP User — Kamailio VoIP</p> */}
           </div>
         </div>
 
@@ -60,7 +60,7 @@ export default function AboutPage() {
         </div>
 
         <div style={s.note}>
-          Nomor SIP harus terdaftar di server Kamailio oleh administrator sebelum bisa login.
+          Nomor SIP harus terdaftar di server Kamailio
         </div>
       </main>
       <Footer />
