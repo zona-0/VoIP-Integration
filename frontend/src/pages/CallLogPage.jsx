@@ -76,7 +76,7 @@ export default function CallLogPage() {
                     <div style={s.meta}>
                       <span style={{ ...s.badge, background:sc.bg, color:sc.color }}>{sc.label}</span>
                       <span style={s.dot}>·</span>
-                      <span style={s.metaTxt}>{log.callStatus === 'video' ? '📹 Video' : '📞 Suara'}</span>
+                      <span style={s.metaTxt}>{log.type === 'video call' ? '📹 Video' : '📞 Suara'}</span>
                     </div>
                     <div style={s.time}>{fmtDate(log.timestamp)}</div>
                   </div>

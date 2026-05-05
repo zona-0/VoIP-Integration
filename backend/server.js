@@ -88,8 +88,8 @@ const MOCK_USERS = {
 const MOCK_MODE = process.env.MOCK_MODE === 'true';
 
 if (MOCK_MODE) {
-  console.log('MOCK MODE aktif — login tanpa Kamailio');
-  console.log('User test:', Object.keys(MOCK_USERS).join(', '));
+  console.log('⚠️  MOCK MODE aktif — login tanpa Kamailio');
+  console.log('   User test:', Object.keys(MOCK_USERS).join(', '));
 }
 
 app.get('/api/health', async (_req, res) => {
@@ -166,15 +166,16 @@ app.get('/api/calls/log', auth, async (req, res) => {
 });
 
 app.post('/api/calls/start', auth, async (req, res) => {
-  const { targetNumber } = req.body;
+  const { targetNumber, callType } = req.body;
   if (!targetNumber)
     return res.status(400).json({ success: false, message: 'Nomor tujuan harus diisi' });
   try {
+    const type = callType === 'video' ? 'video call' : 'call';
     const { rows } = await pool.query(
       `INSERT INTO call_logs (user_number, type, target, status, call_status, duration)
-       VALUES ($1, 'call', $2, 'calling', 'Calling', '00:00:00')
+       VALUES ($1, $2, $3, 'calling', 'Calling', '00:00:00')
        RETURNING id`,
-      [req.user.number, targetNumber]
+      [req.user.number, type, targetNumber]
     );
     res.json({ success: true, callId: rows[0].id, status: 'Calling' });
   } catch (e) {
@@ -220,6 +221,6 @@ app.delete('/api/calls/log/:id', auth, async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ CaaS O2 Backend berjalan di port ${PORT}`);
-  console.log(`   Mode: ${MOCK_MODE ? 'MOCK (testing)' : 'PRODUCTION'}`);
+  console.log(`backend port ${PORT}`);
+  // console.log(`   Mode: ${MOCK_MODE ? 'MOCK (testing)' : 'PRODUCTION'}`);
 });
