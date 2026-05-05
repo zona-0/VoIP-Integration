@@ -5,7 +5,6 @@ import api from '../api';
 
 const KEYS = [['1','2','3'],['4','5','6'],['7','8','9'],['*','0','#']];
 
-// ─── Call Screen Overlay ──────────────────────────────────────────────────────
 function CallScreen({ number, callType, status, duration, onEnd, muted, setMuted, speakerOn, setSpeakerOn, videoOn, setVideoOn }) {
   const fmt = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
   const localRef = useRef(null);
@@ -23,24 +22,20 @@ function CallScreen({ number, callType, status, duration, onEnd, muted, setMuted
 
   return (
     <div style={sc.overlay}>
-      {/* VIDEO CALL area */}
       {callType === 'video' && (
         <div style={sc.videoWrap}>
-          {/* Remote (abu-abu simulasi) */}
           <div style={sc.remoteBox}>
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" style={{ opacity:.35 }}>
               <rect x="2" y="7" width="15" height="10" rx="2" stroke="white" strokeWidth="1.5"/>
               <path d="M17 9l5-3v12l-5-3V9z" stroke="white" strokeWidth="1.5" strokeLinejoin="round"/>
             </svg>
           </div>
-          {/* Local (pojok kanan bawah) */}
           <div style={sc.localBox}>
             <video ref={localRef} autoPlay playsInline muted style={{ width:'100%', height:'100%', objectFit:'cover', transform:'scaleX(-1)' }}/>
           </div>
         </div>
       )}
 
-      {/* VOICE CALL avatar */}
       {callType === 'voice' && (
         <div style={sc.avatarWrap}>
           <div style={sc.avatar}>
@@ -58,16 +53,13 @@ function CallScreen({ number, callType, status, duration, onEnd, muted, setMuted
         </div>
       )}
 
-      {/* Info */}
       <div style={sc.info}>
         <p style={sc.num}>{number}</p>
         <p style={sc.stat}>{status}</p>
         <p style={sc.time}>{fmt(duration)}</p>
       </div>
 
-      {/* Controls */}
       <div style={sc.ctrlRow}>
-        {/* Mute */}
         <button
           style={{ ...sc.ctrlBtn, background: muted ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.15)' }}
           onClick={() => setMuted(m => !m)}>
@@ -79,7 +71,6 @@ function CallScreen({ number, callType, status, duration, onEnd, muted, setMuted
           </svg>
         </button>
 
-        {/* Toggle camera (video call only) */}
         {callType === 'video' && (
           <button
             style={{ ...sc.ctrlBtn, background: !videoOn ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.15)' }}
@@ -91,14 +82,12 @@ function CallScreen({ number, callType, status, duration, onEnd, muted, setMuted
           </button>
         )}
 
-        {/* End call */}
         <button style={sc.endBtn} onClick={onEnd}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
             <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" fill="white" transform="rotate(135 12 12)"/>
           </svg>
         </button>
 
-        {/* Speaker */}
         <button
           style={{ ...sc.ctrlBtn, background: speakerOn ? 'rgba(255,255,255,.35)' : 'rgba(255,255,255,.15)' }}
           onClick={() => setSpeakerOn(sp => !sp)}>
@@ -115,7 +104,6 @@ function CallScreen({ number, callType, status, duration, onEnd, muted, setMuted
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DialPadPage() {
   const [number,    setNumber]    = useState('');
   const [inCall,    setInCall]    = useState(false);
@@ -210,7 +198,6 @@ export default function DialPadPage() {
             ))}
           </div>
 
-          {/* Bottom row: backspace + voice + video */}
           <div style={s.btns}>
             <button style={s.bsDel} onClick={() => setNumber(n => n.slice(0,-1))}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
