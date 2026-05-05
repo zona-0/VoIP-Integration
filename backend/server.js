@@ -39,9 +39,9 @@ async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_call_logs_time
       ON call_logs(started_at DESC);
   `);
-  console.log('✅ Database tables ready');
+  // console.log('Database ready');
 }
-initDB().catch(err => console.error('❌ DB init error:', err.message));
+initDB().catch(err => console.error('DB error:', err.message));
 
 const origins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(',').map(s => s.trim())
@@ -88,8 +88,8 @@ const MOCK_USERS = {
 const MOCK_MODE = process.env.MOCK_MODE === 'true';
 
 if (MOCK_MODE) {
-  console.log('⚠️  MOCK MODE aktif — login tanpa Kamailio');
-  console.log('   User test:', Object.keys(MOCK_USERS).join(', '));
+  console.log('MOCK MODE aktif — login without kamailio');
+  console.log('User test:', Object.keys(MOCK_USERS).join(', '));
 }
 
 app.get('/api/health', async (_req, res) => {

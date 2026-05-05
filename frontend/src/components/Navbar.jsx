@@ -5,7 +5,7 @@ const NAV = [
   { label: 'Beranda',  path: '/' },
   { label: 'Dial Pad', path: '/dialpad' },
   { label: 'Call Log', path: '/calllog' },
-  { label: 'About',    path: '/about' },
+  { label: 'Tentang',    path: '/about' },
 ];
 
 export default function Navbar() {
