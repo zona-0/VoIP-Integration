@@ -1,6 +1,7 @@
 {
   "name": "caas-o2-backend",
   "version": "1.0.0",
+  "description": "CaaS O2 Backend - VoIP Kamailio",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
