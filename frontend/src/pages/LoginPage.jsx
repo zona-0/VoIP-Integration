@@ -4,7 +4,7 @@ import api from '../api';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [form, setForm]     = useState({ number: '', password: '', server: '192.168.1.100:5060' });
+  const [form, setForm]     = useState({ number: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -60,13 +60,6 @@ export default function LoginPage() {
                 }
               </button>
             </div>
-          </div>
-
-          <div style={s.field}>
-            <label style={s.label}>Server Kamailio</label>
-            <input name="server" type="text" value={form.server}
-              onChange={onChange} onKeyDown={onEnter} style={s.input} />
-            <span style={s.hint}>Format: host:port (contoh: 192.168.1.100:5060)</span>
           </div>
 
           {error && (
