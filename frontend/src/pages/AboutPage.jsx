@@ -4,10 +4,10 @@ import Footer from '../components/Footer';
 export default function AboutPage() {
   const user = JSON.parse(localStorage.getItem('caas_user') || '{}');
   const specs = [
-    { label:'Aplikasi',     value:'CaaS O2 Web' },
+    { label:'Aplikasi',     value:'VoIP CaaS-02' },
     { label:'Versi',        value:'1.0.0' },
     { label:'Protokol',     value:'SIP/UDP' },
-    { label:'Port',         value:'5060' },
+    { label:'Port',         value:'8080' },
     { label:'Server',       value: user.server || '-' },
     { label:'Nomor Aktif',  value: user.number || '-' },
   ];
@@ -16,7 +16,6 @@ export default function AboutPage() {
     { icon:'📹', label:'Video Call',    desc:'Video call berbasis WebRTC' },
     { icon:'🔢', label:'Dial Pad',      desc:'Keypad untuk input nomor tujuan' },
     { icon:'📋', label:'Call Log',      desc:'Riwayat panggilan tersimpan di Supabase' },
-    { icon:'🔒', label:'SIP Auth',      desc:'Login aman via server Kamailio' },
   ];
 
   return (
@@ -62,7 +61,6 @@ export default function AboutPage() {
 
         <div style={s.note}>
           Nomor SIP harus terdaftar di server Kamailio oleh administrator sebelum bisa login.
-          Aplikasi menggunakan protokol SIP/UDP untuk komunikasi suara dan WebRTC untuk video.
         </div>
       </main>
       <Footer />

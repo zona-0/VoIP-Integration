@@ -18,9 +18,8 @@ export default function HomePage() {
       <main style={s.main}>
         <div style={s.hero}>
           <div>
-            <div style={s.badge}><span style={s.dot} />Terhubung ke Kamailio</div>
             <h1 style={s.ht}>Selamat Datang,<br /><span style={s.hn}>{user.number}</span></h1>
-            <p style={s.hs}>Server: <strong>{user.server}</strong> · Protokol SIP/UDP</p>
+            <p style={s.hs}>Server: <strong>{user.server}</strong></p>
           </div>
           <div style={s.art}>
             <div style={s.r1} /><div style={s.r2} />
