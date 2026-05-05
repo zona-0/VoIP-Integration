@@ -4,9 +4,9 @@ import api from '../api';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ number: '', password: '' });
+  const [form, setForm]     = useState({ number: '', password: '' });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]   = useState('');
   const [showPass, setShowPass] = useState(false);
 
   const onChange = (e) => { setForm({ ...form, [e.target.name]: e.target.value }); setError(''); };
@@ -18,6 +18,8 @@ export default function LoginPage() {
       const res = await api.post('/api/auth/login', form);
       localStorage.setItem('caas_token', res.data.token);
       localStorage.setItem('caas_user',  JSON.stringify(res.data.user));
+      // Simpan password di sessionStorage untuk SIP registration
+      sessionStorage.setItem('caas_password', form.password);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal terhubung ke server');
@@ -88,25 +90,25 @@ export default function LoginPage() {
 }
 
 const s = {
-  page: { minHeight: '100vh', background: 'linear-gradient(135deg,#FFF0F0 0%,#FAFAFA 50%,#FFF5F5 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', position: 'relative', overflow: 'hidden' },
-  bg1: { position: 'absolute', top: -120, right: -80, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(200,39,45,.08) 0%,transparent 70%)', pointerEvents: 'none' },
-  bg2: { position: 'absolute', bottom: -100, left: -80, width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle,rgba(200,39,45,.06) 0%,transparent 70%)', pointerEvents: 'none' },
-  card: { background: 'white', borderRadius: 24, padding: '40px 36px', width: '100%', maxWidth: 420, boxShadow: '0 8px 40px rgba(0,0,0,.1),0 2px 8px rgba(200,39,45,.08)', position: 'relative', animation: 'fadeInUp .5s ease' },
-  header: { textAlign: 'center', marginBottom: 32 },
-  icon: { width: 68, height: 68, borderRadius: 20, background: 'linear-gradient(135deg,var(--red-primary),var(--red-light))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 6px 20px rgba(200,39,45,.35)', position: 'relative' },
-  pulse: { position: 'absolute', inset: 0, borderRadius: 20, background: 'rgba(200,39,45,.3)', animation: 'pulse-ring 2s ease-out infinite' },
-  title: { fontSize: 26, fontWeight: 800, color: 'var(--red-primary)', letterSpacing: '-.5px', marginBottom: 6 },
-  sub: { fontSize: 14, color: 'var(--gray-400)' },
-  form: { display: 'flex', flexDirection: 'column', gap: 18 },
-  field: { display: 'flex', flexDirection: 'column', gap: 6 },
-  label: { fontSize: 13, fontWeight: 600, color: 'var(--gray-600)' },
-  input: { width: '100%', padding: '11px 14px', border: '1.5px solid var(--gray-200)', borderRadius: 10, fontSize: 14, color: 'var(--gray-700)', background: 'var(--gray-50)', boxSizing: 'border-box' },
-  eye: { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' },
-  hint: { fontSize: 11, color: 'var(--gray-400)' },
-  err: { background: '#FFF0F0', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--red-primary)', fontWeight: 500, display: 'flex', alignItems: 'flex-start', gap: 8 },
-  btn: { background: 'linear-gradient(135deg,var(--red-primary),var(--red-light))', color: 'white', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontWeight: 700, width: '100%', boxShadow: 'var(--shadow-red)', cursor: 'pointer', marginTop: 4 },
+  page:    { minHeight: '100vh', background: 'linear-gradient(135deg,#FFF0F0 0%,#FAFAFA 50%,#FFF5F5 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', position: 'relative', overflow: 'hidden' },
+  bg1:     { position: 'absolute', top: -120, right: -80, width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle,rgba(200,39,45,.08) 0%,transparent 70%)', pointerEvents: 'none' },
+  bg2:     { position: 'absolute', bottom: -100, left: -80, width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle,rgba(200,39,45,.06) 0%,transparent 70%)', pointerEvents: 'none' },
+  card:    { background: 'white', borderRadius: 24, padding: '40px 36px', width: '100%', maxWidth: 420, boxShadow: '0 8px 40px rgba(0,0,0,.1),0 2px 8px rgba(200,39,45,.08)', position: 'relative', animation: 'fadeInUp .5s ease' },
+  header:  { textAlign: 'center', marginBottom: 32 },
+  icon:    { width: 68, height: 68, borderRadius: 20, background: 'linear-gradient(135deg,var(--red-primary),var(--red-light))', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 6px 20px rgba(200,39,45,.35)', position: 'relative' },
+  pulse:   { position: 'absolute', inset: 0, borderRadius: 20, background: 'rgba(200,39,45,.3)', animation: 'pulse-ring 2s ease-out infinite' },
+  title:   { fontSize: 26, fontWeight: 800, color: 'var(--red-primary)', letterSpacing: '-.5px', marginBottom: 6 },
+  sub:     { fontSize: 14, color: 'var(--gray-400)' },
+  form:    { display: 'flex', flexDirection: 'column', gap: 18 },
+  field:   { display: 'flex', flexDirection: 'column', gap: 6 },
+  label:   { fontSize: 13, fontWeight: 600, color: 'var(--gray-600)' },
+  input:   { width: '100%', padding: '11px 14px', border: '1.5px solid var(--gray-200)', borderRadius: 10, fontSize: 14, color: 'var(--gray-700)', background: 'var(--gray-50)', boxSizing: 'border-box' },
+  eye:     { position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' },
+  hint:    { fontSize: 11, color: 'var(--gray-400)' },
+  err:     { background: '#FFF0F0', border: '1px solid #FECACA', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--red-primary)', fontWeight: 500, display: 'flex', alignItems: 'flex-start', gap: 8 },
+  btn:     { background: 'linear-gradient(135deg,var(--red-primary),var(--red-light))', color: 'white', border: 'none', borderRadius: 12, padding: '14px', fontSize: 15, fontWeight: 700, width: '100%', boxShadow: 'var(--shadow-red)', cursor: 'pointer', marginTop: 4 },
   loadRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  spin: { width: 16, height: 16, border: '2px solid rgba(255,255,255,.3)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin .7s linear infinite' },
-  note: { fontSize: 12, color: 'var(--gray-400)', textAlign: 'center' },
-  foot: { marginTop: 24, fontSize: 12, color: 'var(--gray-400)' },
+  spin:    { width: 16, height: 16, border: '2px solid rgba(255,255,255,.3)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin .7s linear infinite' },
+  note:    { fontSize: 12, color: 'var(--gray-400)', textAlign: 'center' },
+  foot:    { marginTop: 24, fontSize: 12, color: 'var(--gray-400)' },
 };
