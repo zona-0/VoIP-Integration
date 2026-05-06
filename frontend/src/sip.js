@@ -1,11 +1,31 @@
 import JsSIP from 'jssip';
 
-const KAMAILIO_WS = (import.meta.env.VITE_KAMAILIO_WS)
+const KAMAILIO_WS = (import.meta.env.VITE_KAMAILIO_WS || '')
   .replace(/^https?:\/\//, '')
   .replace(/^wss?:\/\//, '');
 const KAMAILIO_HOST = import.meta.env.VITE_KAMAILIO_HOST || '192.168.56.10';
 
-let ua             = null;
+const ICE_SERVERS = [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  {
+    urls: 'turn:openrelay.metered.ca:80',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+  {
+    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+    username: 'openrelayproject',
+    credential: 'openrelayproject',
+  },
+];
+
+let ua = null;
 let currentSession = null;
 let onStatusUpdate = null;
 let onIncomingCall = null;
@@ -24,13 +44,13 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
   const socket = new JsSIP.WebSocketInterface(`wss://${KAMAILIO_WS}`);
 
   ua = new JsSIP.UA({
-    sockets         : [socket],
-    uri             : `sip:${number}@${KAMAILIO_HOST}`,
-    password        : password,
-    display_name    : number,
-    register        : true,
+    sockets: [socket],
+    uri: `sip:${number}@${KAMAILIO_HOST}`,
+    password: password,
+    display_name: number,
+    register: true,
     register_expires: 300,
-    contact_uri     : `sip:${number}@${KAMAILIO_HOST}`,
+    contact_uri: `sip:${number}@${KAMAILIO_HOST}`,
   });
 
   ua.on('registered', () => {
@@ -53,14 +73,12 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
       currentSession = session;
       const callerNumber = session.remote_identity.uri.user;
       console.log('[SIP] Incoming call from:', callerNumber);
-
       onIncomingCall?.({
-        number : callerNumber,
+        number: callerNumber,
         session: session,
-        answer : (isVideo) => answerCall(isVideo),
-        reject : () => rejectCall(),
+        answer: (isVideo) => answerCall(isVideo),
+        reject: () => rejectCall(),
       });
-
       setTimeout(() => {
         if (session.status === JsSIP.RTCSession.C.STATUS_WAITING_FOR_ANSWER) {
           session.terminate();
@@ -84,23 +102,8 @@ export function makeCall({ targetNumber, isVideo = false, onCallStatus, remoteVi
   console.log('[SIP] Calling:', target);
 
   const options = {
-    mediaConstraints: {
-      audio: true,
-      video: isVideo,
-    },
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      {
-        urls: 'turn:openrelay.metered.ca:80',
-        username: 'openrelayproject',
-        credential: 'openrelayproject',
-      },
-      {
-        urls: 'turn:openrelay.metered.ca:443',
-        username: 'openrelayproject',
-        credential: 'openrelayproject',
-      },
-    ],
+    mediaConstraints: { audio: true, video: isVideo },
+    pcConfig: { iceServers: ICE_SERVERS },
     rtcOfferConstraints: {
       offerToReceiveAudio: true,
       offerToReceiveVideo: isVideo,
@@ -152,21 +155,7 @@ export function answerCall(isVideo = false) {
   if (!currentSession) return;
   currentSession.answer({
     mediaConstraints: { audio: true, video: isVideo },
-    pcConfig: {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        {
-          urls: 'turn:openrelay.metered.ca:80',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-        {
-          urls: 'turn:openrelay.metered.ca:443',
-          username: 'openrelayproject',
-          credential: 'openrelayproject',
-        },
-      ],
-    },
+    pcConfig: { iceServers: ICE_SERVERS },
   });
 }
 
