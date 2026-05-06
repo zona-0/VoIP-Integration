@@ -21,7 +21,7 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
 
   JsSIP.debug.disable('JsSIP:*');
 
-  const socket = new JsSIP.WebSocketInterface(`wss://${KAMAILIO_WS}`);
+  const socket = new JsSIP.WebSocketInterface(`ws://${KAMAILIO_WS}`);
 
   ua = new JsSIP.UA({
     sockets         : [socket],
