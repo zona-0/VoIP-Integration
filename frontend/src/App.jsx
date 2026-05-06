@@ -1,26 +1,21 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LoginPage   from './pages/LoginPage';
-import HomePage    from './pages/HomePage';
-import DialPadPage from './pages/DialPadPage';
-import CallLogPage from './pages/CallLogPage';
-import AboutPage   from './pages/AboutPage';
+import { useEffect } from 'react';
+import { initSIP } from './sip';
 
-function PrivateRoute({ children }) {
-  const token = localStorage.getItem('caas_token');
-  return token ? children : <Navigate to="/login" replace />;
-}
-
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login"   element={<LoginPage />} />
-        <Route path="/"        element={<PrivateRoute><HomePage /></PrivateRoute>} />
-        <Route path="/dialpad" element={<PrivateRoute><DialPadPage /></PrivateRoute>} />
-        <Route path="/calllog" element={<PrivateRoute><CallLogPage /></PrivateRoute>} />
-        <Route path="/about"   element={<PrivateRoute><AboutPage /></PrivateRoute>} />
-        <Route path="*"        element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
-}
+useEffect(() => {
+  const user = JSON.parse(localStorage.getItem('caas_user') || '{}');
+  const password = sessionStorage.getItem('caas_password') || '';
+  if (user.number && password) {
+    initSIP({
+      number: user.number,
+      password: password,
+      onStatus: ({ type, message }) => {
+        console.log('[SIP] Global status:', type, message);
+      },
+      onIncoming: (callInfo) => {
+        console.log('[SIP] Global incoming from:', callInfo.number);
+        window.__incomingCall = callInfo;
+        window.location.href = '/dialpad';
+      },
+    });
+  }
+}, []);
