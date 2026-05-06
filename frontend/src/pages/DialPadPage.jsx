@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import api from '../api';
-import { initSIP, makeCall, endCall, toggleMute, toggleCamera } from '../sip';
+import { initSIP, makeCall, endCall, answerCall, toggleMute, toggleCamera } from '../sip';
 
 const KEYS = [['1','2','3'],['4','5','6'],['7','8','9'],['*','0','#']];
 
@@ -238,21 +238,31 @@ export default function DialPadPage() {
   };
 
   const handleAnswerVoice = () => {
-    incomingCall?.answer(false);
     setCallNumber(incomingCall?.number);
     setCallType('voice');
     setInCall(true);
     setStatus('In Call....');
     setIncomingCall(null);
+    answerCall(false, remoteVideoRef, localVideoRef, (newStatus) => {
+      setStatus(newStatus);
+      if (newStatus === 'Call Ended' || newStatus.startsWith('Call Failed')) {
+        setTimeout(() => { setInCall(false); setStatus(''); setDuration(0); }, 2000);
+      }
+    });
   };
 
   const handleAnswerVideo = () => {
-    incomingCall?.answer(true);
     setCallNumber(incomingCall?.number);
     setCallType('video');
     setInCall(true);
     setStatus('In Call....');
     setIncomingCall(null);
+    answerCall(true, remoteVideoRef, localVideoRef, (newStatus) => {
+      setStatus(newStatus);
+      if (newStatus === 'Call Ended' || newStatus.startsWith('Call Failed')) {
+        setTimeout(() => { setInCall(false); setStatus(''); setDuration(0); }, 2000);
+      }
+    });
   };
 
   const handleReject = () => {
