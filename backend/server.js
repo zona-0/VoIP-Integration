@@ -28,6 +28,8 @@ async function initDB() {
       id         SERIAL PRIMARY KEY,
       number     TEXT NOT NULL UNIQUE,
       server     TEXT NOT NULL,
+      session_id TEXT,
+      last_login TIMESTAMPTZ DEFAULT NOW(),
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -45,6 +47,10 @@ async function initDB() {
     CREATE INDEX IF NOT EXISTS idx_call_logs_user ON call_logs(user_number);
     CREATE INDEX IF NOT EXISTS idx_call_logs_time ON call_logs(started_at DESC);
   `);
+  try {
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS session_id TEXT`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ DEFAULT NOW()`);
+  } catch(e) {}
   console.log('[DB] Supabase tables ready');
 }
 initDB().catch(err => console.error('[DB] Init error:', err.message));
@@ -53,23 +59,14 @@ async function validateKamailio(number, password) {
   const apiUrl = process.env.KAMAILIO_API_URL;
   console.log(`[KAMAILIO] Validating: ${number}`);
   console.log(`[KAMAILIO] API URL: ${apiUrl}`);
-
-  if (!apiUrl) {
-    console.error('[KAMAILIO] KAMAILIO_API_URL not set');
-    return false;
-  }
-
+  if (!apiUrl) { console.error('[KAMAILIO] KAMAILIO_API_URL not set'); return false; }
   return new Promise((resolve) => {
     const body = JSON.stringify({ number, password });
     const url  = new URL('/validate', apiUrl);
     const lib  = url.protocol === 'https:' ? https : http;
-
     const req = lib.request(url, {
-      method : 'POST',
-      headers: {
-        'Content-Type'  : 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-      },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
     }, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
@@ -84,18 +81,8 @@ async function validateKamailio(number, password) {
         }
       });
     });
-
-    req.on('error', (e) => {
-      console.error('[KAMAILIO] Request error:', e.message);
-      resolve(false);
-    });
-
-    req.setTimeout(10000, () => {
-      console.error('[KAMAILIO] Timeout');
-      req.destroy();
-      resolve(false);
-    });
-
+    req.on('error', (e) => { console.error('[KAMAILIO] Request error:', e.message); resolve(false); });
+    req.setTimeout(10000, () => { console.error('[KAMAILIO] Timeout'); req.destroy(); resolve(false); });
     req.write(body);
     req.end();
   });
@@ -106,9 +93,7 @@ app.use(cors({
     if (!origin) return callback(null, true);
     if (origin.endsWith('.vercel.app')) return callback(null, true);
     if (origin.includes('localhost')) return callback(null, true);
-    const allowed = process.env.FRONTEND_URL
-      ? process.env.FRONTEND_URL.split(',').map(s => s.trim())
-      : [];
+    const allowed = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(',').map(s => s.trim()) : [];
     if (allowed.includes(origin)) return callback(null, true);
     console.warn('[CORS] Blocked:', origin);
     callback(new Error('CORS not allowed'));
@@ -147,77 +132,63 @@ function auth(req, res, next) {
   next();
 }
 
+async function authWithSession(req, res, next) {
+  const h = req.headers.authorization;
+  if (!h?.startsWith('Bearer '))
+    return res.status(401).json({ success: false, message: 'Token tidak ditemukan' });
+  const user = verifyToken(h.split(' ')[1]);
+  if (!user)
+    return res.status(401).json({ success: false, message: 'Token tidak valid atau kadaluarsa' });
+  try {
+    const { rows } = await pool.query('SELECT session_id FROM users WHERE number=$1', [user.number]);
+    if (rows.length > 0 && rows[0].session_id && user.sessionId && rows[0].session_id !== user.sessionId) {
+      console.warn(`[SESSION] Expired session for ${user.number}`);
+      return res.status(401).json({ success: false, message: 'Sesi tidak valid. Silakan login ulang.', code: 'SESSION_EXPIRED' });
+    }
+  } catch(e) {}
+  req.user = user;
+  next();
+}
+
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
-    console.log('[HEALTH] OK');
-    res.json({
-      status    : 'OK',
-      db        : 'connected',
-      mode      : MOCK_MODE ? 'mock' : 'production',
-      kamailio  : process.env.KAMAILIO_HOST,
-      timestamp : new Date().toISOString(),
-    });
+    res.json({ status: 'OK', db: 'connected', mode: MOCK_MODE ? 'mock' : 'production', kamailio: process.env.KAMAILIO_HOST, timestamp: new Date().toISOString() });
   } catch (e) {
-    console.error('[HEALTH] Error:', e.message);
     res.status(500).json({ status: 'ERROR', db: e.message });
   }
 });
 
 app.get('/api/dev/users', (_req, res) => {
-  if (!MOCK_MODE)
-    return res.status(404).json({ message: 'Hanya tersedia saat MOCK_MODE=true' });
-  res.json({
-    mock_mode: true,
-    users: Object.keys(MOCK_USERS).map(n => ({ number: n, password: MOCK_USERS[n] })),
-  });
+  if (!MOCK_MODE) return res.status(404).json({ message: 'Hanya tersedia saat MOCK_MODE=true' });
+  res.json({ mock_mode: true, users: Object.keys(MOCK_USERS).map(n => ({ number: n, password: MOCK_USERS[n] })) });
 });
 
 app.post('/api/auth/login', async (req, res) => {
   const { number, password } = req.body;
   console.log(`[LOGIN] number=${number} | MOCK_MODE=${MOCK_MODE}`);
-
-  if (!number || !password) {
-    console.warn('[LOGIN] Missing fields');
-    return res.status(400).json({ success: false, message: 'Nomor dan password harus diisi' });
-  }
-
-  if (!/^[0-9]{4,15}$/.test(number)) {
-    console.warn('[LOGIN] Invalid format:', number);
-    return res.status(400).json({ success: false, message: 'Format nomor tidak valid' });
-  }
+  if (!number || !password) return res.status(400).json({ success: false, message: 'Nomor dan password harus diisi' });
+  if (!/^[0-9]{4,15}$/.test(number)) return res.status(400).json({ success: false, message: 'Format nomor tidak valid' });
 
   if (MOCK_MODE) {
-    if (!MOCK_USERS[number] || MOCK_USERS[number] !== password) {
-      console.warn('[LOGIN] Mock failed:', number);
-      return res.status(401).json({
-        success: false,
-        message: `[MOCK] Salah. Coba: ${Object.keys(MOCK_USERS)[0]} / test1234`,
-      });
-    }
-    console.log('[LOGIN] Mock success:', number);
+    if (!MOCK_USERS[number] || MOCK_USERS[number] !== password)
+      return res.status(401).json({ success: false, message: `[MOCK] Salah. Coba: ${Object.keys(MOCK_USERS)[0]} / test1234` });
   } else {
     const valid = await validateKamailio(number, password);
-    if (!valid) {
-      console.warn('[LOGIN] Kamailio failed:', number);
-      return res.status(401).json({
-        success: false,
-        message: 'Nomor atau password salah. Pastikan terdaftar di Kamailio.',
-      });
-    }
-    console.log('[LOGIN] Kamailio success:', number);
+    if (!valid) return res.status(401).json({ success: false, message: 'Nomor atau password salah. Pastikan terdaftar di Kamailio.' });
   }
 
   try {
     const server = `${process.env.KAMAILIO_HOST || '192.168.56.10'}:${process.env.KAMAILIO_PORT || '5060'}`;
+    const sessionId = crypto.randomBytes(16).toString('hex');
     await pool.query(
-      `INSERT INTO users (number, server, updated_at)
-       VALUES ($1, $2, NOW())
-       ON CONFLICT (number) DO UPDATE SET server = EXCLUDED.server, updated_at = NOW()`,
-      [number, server]
+      `INSERT INTO users (number, server, session_id, last_login, updated_at)
+       VALUES ($1, $2, $3, NOW(), NOW())
+       ON CONFLICT (number) DO UPDATE SET server=EXCLUDED.server, session_id=$3, last_login=NOW(), updated_at=NOW()`,
+      [number, server, sessionId]
     );
-    const token = signToken({ number, server });
-    console.log('[LOGIN] Token issued for:', number);
+    const token = signToken({ number, server, sessionId });
+    console.log('[LOGIN] Token issued for:', number, '| session:', sessionId.substring(0,8));
     res.json({ success: true, message: 'Login berhasil', token, user: { number, server } });
   } catch (e) {
     console.error('[LOGIN] Error:', e.message);
@@ -225,86 +196,74 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/auth/verify', auth, (req, res) => {
+app.post('/api/auth/logout', auth, async (req, res) => {
+  try {
+    await pool.query('UPDATE users SET session_id=NULL WHERE number=$1', [req.user.number]);
+    console.log('[LOGOUT]', req.user.number);
+    res.json({ success: true });
+  } catch(e) {
+    res.status(500).json({ success: false });
+  }
+});
+
+app.get('/api/auth/verify', authWithSession, (req, res) => {
   res.json({ success: true, user: req.user });
 });
 
-app.get('/api/calls/log', auth, async (req, res) => {
-  console.log('[CALLS] Get log:', req.user.number);
+app.get('/api/calls/log', authWithSession, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, type, target AS number, status,
-              call_status AS "callStatus", duration, started_at AS timestamp
-       FROM call_logs WHERE user_number = $1
-       ORDER BY started_at DESC LIMIT 100`,
+      `SELECT id, type, target AS number, status, call_status AS "callStatus", duration, started_at AS timestamp
+       FROM call_logs WHERE user_number=$1 ORDER BY started_at DESC LIMIT 100`,
       [req.user.number]
     );
-    console.log(`[CALLS] ${rows.length} logs found`);
     res.json({ success: true, data: rows });
   } catch (e) {
-    console.error('[CALLS] Get error:', e.message);
     res.status(500).json({ success: false, message: e.message });
   }
 });
 
-app.post('/api/calls/start', auth, async (req, res) => {
+app.post('/api/calls/start', authWithSession, async (req, res) => {
   const { targetNumber, callType } = req.body;
-  console.log(`[CALLS] Start: ${req.user.number} -> ${targetNumber} [${callType}]`);
-  if (!targetNumber)
-    return res.status(400).json({ success: false, message: 'Nomor tujuan harus diisi' });
+  if (!targetNumber) return res.status(400).json({ success: false, message: 'Nomor tujuan harus diisi' });
   try {
     const type = callType === 'video' ? 'video call' : 'call';
     const { rows } = await pool.query(
-      `INSERT INTO call_logs (user_number, type, target, status, call_status, duration)
-       VALUES ($1, $2, $3, 'calling', 'Calling', '00:00:00') RETURNING id`,
+      `INSERT INTO call_logs (user_number, type, target, status, call_status, duration) VALUES ($1,$2,$3,'calling','Calling','00:00:00') RETURNING id`,
       [req.user.number, type, targetNumber]
     );
-    console.log('[CALLS] Started, id:', rows[0].id);
     res.json({ success: true, callId: rows[0].id, status: 'Calling' });
   } catch (e) {
-    console.error('[CALLS] Start error:', e.message);
     res.status(500).json({ success: false, message: e.message });
   }
 });
 
-app.post('/api/calls/end', auth, async (req, res) => {
+app.post('/api/calls/end', authWithSession, async (req, res) => {
   const { callId, targetNumber, duration, status } = req.body;
-  console.log(`[CALLS] End: id=${callId} status=${status} duration=${duration}`);
   try {
     if (callId) {
       await pool.query(
-        `UPDATE call_logs SET status=$1, call_status='End', duration=$2
-         WHERE id=$3 AND user_number=$4`,
+        `UPDATE call_logs SET status=$1, call_status='End', duration=$2 WHERE id=$3 AND user_number=$4`,
         [status || 'ended', duration || '00:00:00', callId, req.user.number]
       );
     } else {
       await pool.query(
-        `INSERT INTO call_logs (user_number, type, target, status, call_status, duration)
-         VALUES ($1, 'call', $2, $3, 'End', $4)`,
+        `INSERT INTO call_logs (user_number, type, target, status, call_status, duration) VALUES ($1,'call',$2,$3,'End',$4)`,
         [req.user.number, targetNumber || 'unknown', status || 'ended', duration || '00:00:00']
       );
     }
-    console.log('[CALLS] Ended ok');
     res.json({ success: true, message: 'Panggilan selesai' });
   } catch (e) {
-    console.error('[CALLS] End error:', e.message);
     res.status(500).json({ success: false, message: e.message });
   }
 });
 
-app.delete('/api/calls/log/:id', auth, async (req, res) => {
-  console.log('[CALLS] Delete log:', req.params.id);
+app.delete('/api/calls/log/:id', authWithSession, async (req, res) => {
   try {
-    const { rowCount } = await pool.query(
-      'DELETE FROM call_logs WHERE id=$1 AND user_number=$2',
-      [req.params.id, req.user.number]
-    );
-    if (rowCount === 0)
-      return res.status(404).json({ success: false, message: 'Log tidak ditemukan' });
-    console.log('[CALLS] Deleted ok');
+    const { rowCount } = await pool.query('DELETE FROM call_logs WHERE id=$1 AND user_number=$2', [req.params.id, req.user.number]);
+    if (rowCount === 0) return res.status(404).json({ success: false, message: 'Log tidak ditemukan' });
     res.json({ success: true, message: 'Log dihapus' });
   } catch (e) {
-    console.error('[CALLS] Delete error:', e.message);
     res.status(500).json({ success: false, message: e.message });
   }
 });
