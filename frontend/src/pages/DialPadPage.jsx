@@ -313,11 +313,6 @@ export default function DialPadPage() {
               background: sipStatus.includes('Terdaftar') ? '#F0FDF4' : '#FFF7ED',
               color: sipStatus.includes('Terdaftar') ? '#166534' : '#92400E',
             }}>
-              <span style={{
-                display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-                background: sipStatus.includes('Terdaftar') ? '#22C55E' : '#F59E0B',
-                marginRight: 6,
-              }}/>
               {sipStatus}
             </div>
           )}
