@@ -307,7 +307,7 @@ export default function DialPadPage() {
               color: sipStatus.includes('Terdaftar') ? '#166534' : '#92400E',
             }}>
               <span style={{ fontSize:8, marginRight:6 }}>
-                {sipStatus.includes('Terdaftar') ? '🟢' : '🟡'}
+                {sipStatus.includes('Terdaftar') ? 'v' : 'x'}
               </span>
               {sipStatus}
             </div>
