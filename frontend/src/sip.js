@@ -158,6 +158,24 @@ export function initSIP({ number, password, onStatus, onIncoming, onCallEnd }) {
       const callerNumber = session.remote_identity.uri.user;
       console.log('[SIP] Incoming call from:', callerNumber);
 
+      session.on('peerconnection', ({ peerconnection }) => {
+        console.log('[ICE] Incoming PeerConnection created');
+        peerconnection.oniceconnectionstatechange = () => {
+          console.log('[ICE] Incoming State:', peerconnection.iceConnectionState);
+        };
+        peerconnection.onicegatheringstatechange = () => {
+          console.log('[ICE] Incoming Gathering:', peerconnection.iceGatheringState);
+        };
+        peerconnection.ontrack = (event) => {
+          console.log('[ICE] Incoming track:', event.track.kind);
+          if (event.streams && event.streams[0]) {
+            const audio = getOrCreateAudio();
+            audio.srcObject = event.streams[0];
+            audio.play().catch(e => console.error('[AUDIO] Incoming play error:', e));
+          }
+        };
+      });
+
       onIncomingCall?.({
         number: callerNumber,
         session: session,
