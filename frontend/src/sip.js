@@ -30,6 +30,7 @@ let currentSession = null;
 let onStatusUpdate = null;
 let onIncomingCall = null;
 let remoteAudio = null;
+let onCallEndGlobal = null;
 
 function getOrCreateAudio() {
   if (!remoteAudio) {
@@ -52,7 +53,67 @@ function attachRemoteStream(stream, remoteVideoRef, isVideo) {
   }
 }
 
-export function initSIP({ number, password, onStatus, onIncoming }) {
+function attachPeerConnection(session, remoteVideoRef, isVideo) {
+  session.on('peerconnection', ({ peerconnection }) => {
+    console.log('[ICE] PeerConnection created');
+
+    peerconnection.oniceconnectionstatechange = () => {
+      console.log('[ICE] State:', peerconnection.iceConnectionState);
+    };
+
+    peerconnection.onicegatheringstatechange = () => {
+      console.log('[ICE] Gathering:', peerconnection.iceGatheringState);
+    };
+
+    peerconnection.ontrack = (event) => {
+      console.log('[ICE] Got track:', event.track.kind, '| streams:', event.streams.length);
+      if (event.streams && event.streams[0]) {
+        attachRemoteStream(
+          event.streams[0],
+          remoteVideoRef,
+          isVideo && event.track.kind === 'video'
+        );
+      }
+    };
+  });
+}
+
+function attachSessionEvents(session, onCallStatus, remoteVideoRef, localVideoRef, isVideo) {
+  session.on('progress', () => {
+    console.log('[SIP] Ringing');
+    onCallStatus?.('Ringing....');
+  });
+
+  session.on('accepted', () => {
+    console.log('[SIP] Call Accepted');
+    onCallStatus?.('In Call....');
+  });
+
+  session.on('confirmed', () => {
+    console.log('[SIP] Call Confirmed');
+    onCallStatus?.('In Call....');
+    if (isVideo) {
+      _attachLocalStream(localVideoRef);
+    }
+  });
+
+  session.on('ended', (e) => {
+    console.log('[SIP] Call Ended:', e.cause);
+    onCallStatus?.('Call Ended');
+    onCallEndGlobal?.();
+    _cleanupStream(localVideoRef);
+    if (remoteAudio) remoteAudio.srcObject = null;
+  });
+
+  session.on('failed', (e) => {
+    console.error('[SIP] Call Failed:', e.cause);
+    onCallStatus?.('Call Failed: ' + e.cause);
+    onCallEndGlobal?.();
+    _cleanupStream(localVideoRef);
+  });
+}
+
+export function initSIP({ number, password, onStatus, onIncoming, onCallEnd }) {
   if (ua) {
     ua.stop();
     ua = null;
@@ -60,6 +121,7 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
 
   onStatusUpdate = onStatus;
   onIncomingCall = onIncoming;
+  onCallEndGlobal = onCallEnd;
 
   JsSIP.debug.disable('JsSIP:*');
 
@@ -103,6 +165,17 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
         reject: () => rejectCall(),
       });
 
+      session.on('ended', (e) => {
+        console.log('[SIP] Remote ended call:', e.cause);
+        onCallEndGlobal?.();
+        if (remoteAudio) remoteAudio.srcObject = null;
+      });
+
+      session.on('failed', (e) => {
+        console.error('[SIP] Call failed:', e.cause);
+        onCallEndGlobal?.();
+      });
+
       setTimeout(() => {
         if (session.status === JsSIP.RTCSession.C.STATUS_WAITING_FOR_ANSWER) {
           console.log('[SIP] Auto-reject after 30s');
@@ -114,60 +187,6 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
 
   ua.start();
   console.log('[SIP] UA Starting...');
-}
-
-function setupSessionEvents(session, onCallStatus, remoteVideoRef, localVideoRef, isVideo) {
-  session.on('progress', () => {
-    console.log('[SIP] Ringing');
-    onCallStatus?.('Ringing....');
-  });
-
-  session.on('accepted', () => {
-    console.log('[SIP] Call Accepted');
-    onCallStatus?.('In Call....');
-  });
-
-  session.on('confirmed', () => {
-    console.log('[SIP] Call Confirmed');
-    onCallStatus?.('In Call....');
-    if (isVideo) {
-      _attachLocalStream(localVideoRef);
-    }
-  });
-
-  session.on('ended', (e) => {
-    console.log('[SIP] Call Ended:', e.cause);
-    onCallStatus?.('Call Ended');
-    _cleanupStream(localVideoRef);
-    if (remoteAudio) {
-      remoteAudio.srcObject = null;
-    }
-  });
-
-  session.on('failed', (e) => {
-    console.error('[SIP] Call Failed:', e.cause);
-    onCallStatus?.('Call Failed: ' + e.cause);
-    _cleanupStream(localVideoRef);
-  });
-
-  session.on('peerconnection', ({ peerconnection }) => {
-    console.log('[ICE] PeerConnection created');
-
-    peerconnection.oniceconnectionstatechange = () => {
-      console.log('[ICE] State:', peerconnection.iceConnectionState);
-    };
-
-    peerconnection.onicegatheringstatechange = () => {
-      console.log('[ICE] Gathering:', peerconnection.iceGatheringState);
-    };
-
-    peerconnection.ontrack = (event) => {
-      console.log('[ICE] Got track:', event.track.kind, '| streams:', event.streams.length);
-      if (event.streams && event.streams[0]) {
-        attachRemoteStream(event.streams[0], remoteVideoRef, isVideo && event.track.kind === 'video');
-      }
-    };
-  });
 }
 
 export function makeCall({ targetNumber, isVideo = false, onCallStatus, remoteVideoRef, localVideoRef }) {
@@ -190,13 +209,16 @@ export function makeCall({ targetNumber, isVideo = false, onCallStatus, remoteVi
   };
 
   currentSession = ua.call(target, options);
-  setupSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, isVideo);
+  attachPeerConnection(currentSession, remoteVideoRef, isVideo);
+  attachSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, isVideo);
   return currentSession;
 }
 
 export function answerCall(isVideo = false, remoteVideoRef = null, localVideoRef = null, onCallStatus = null) {
   if (!currentSession) return;
   console.log('[SIP] Answering call | video:', isVideo);
+
+  attachPeerConnection(currentSession, remoteVideoRef, isVideo);
 
   currentSession.answer({
     mediaConstraints: { audio: true, video: isVideo },
@@ -207,7 +229,7 @@ export function answerCall(isVideo = false, remoteVideoRef = null, localVideoRef
     },
   });
 
-  setupSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, isVideo);
+  attachSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, isVideo);
 }
 
 export function rejectCall() {
@@ -220,9 +242,7 @@ export function endCall() {
   if (!currentSession) return;
   try { currentSession.terminate(); } catch {}
   currentSession = null;
-  if (remoteAudio) {
-    remoteAudio.srcObject = null;
-  }
+  if (remoteAudio) remoteAudio.srcObject = null;
 }
 
 export function toggleMute(muted) {
