@@ -238,16 +238,35 @@ export function answerCall(isVideo = false, remoteVideoRef = null, localVideoRef
 
   attachPeerConnection(currentSession, remoteVideoRef, isVideo);
 
-  currentSession.answer({
-    mediaConstraints: { audio: true, video: isVideo },
-    pcConfig: { iceServers: ICE_SERVERS },
-    rtcAnswerConstraints: {
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: isVideo,
-    },
-  });
+  navigator.mediaDevices.getUserMedia({ audio: true, video: isVideo })
+    .then(localStream => {
+      console.log('[SIP] Got local stream for answer | tracks:', localStream.getTracks().length);
 
-  attachSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, isVideo);
+      if (isVideo && localVideoRef?.current) {
+        localVideoRef.current.srcObject = localStream;
+        localVideoRef.current.play().catch(e => console.error('[VIDEO] Local play error:', e));
+        console.log('[SIP] Local video attached for answerer');
+      }
+
+      currentSession.answer({
+        mediaConstraints: { audio: true, video: isVideo },
+        pcConfig: { iceServers: ICE_SERVERS },
+        rtcAnswerConstraints: {
+          offerToReceiveAudio: true,
+          offerToReceiveVideo: isVideo,
+        },
+      });
+
+      attachSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, isVideo);
+    })
+    .catch(err => {
+      console.error('[SIP] getUserMedia failed for answer:', err);
+      currentSession.answer({
+        mediaConstraints: { audio: true, video: false },
+        pcConfig: { iceServers: ICE_SERVERS },
+      });
+      attachSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, false);
+    });
 }
 
 export function rejectCall() {
