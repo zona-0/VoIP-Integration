@@ -1,9 +1,11 @@
 import JsSIP from 'jssip';
 
-const KAMAILIO_WS = import.meta.env.VITE_KAMAILIO_WS;
+const KAMAILIO_WS = (import.meta.env.VITE_KAMAILIO_WS)
+  .replace(/^https?:\/\//, '')
+  .replace(/^wss?:\/\//, '');
 const KAMAILIO_HOST = import.meta.env.VITE_KAMAILIO_HOST || '192.168.56.10';
 
-let ua = null;
+let ua             = null;
 let currentSession = null;
 let onStatusUpdate = null;
 let onIncomingCall = null;
@@ -68,7 +70,7 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
   });
 
   ua.start();
-  console.log('[SIP] user agent start...');
+  console.log('[SIP] UA Starting...');
 }
 
 export function makeCall({ targetNumber, isVideo = false, onCallStatus, remoteVideoRef, localVideoRef }) {

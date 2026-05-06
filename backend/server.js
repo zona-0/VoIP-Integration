@@ -311,7 +311,7 @@ app.delete('/api/calls/log/:id', auth, async (req, res) => {
 
 app.listen(PORT, () => {
   console.log('================================');
-  console.log(`CaaS O2 Backend  | Port: ${PORT}`);
+  console.log(`CaaS 02 Backend  | Port: ${PORT}`);
   console.log(`Mode             | ${MOCK_MODE ? 'MOCK' : 'PRODUCTION'}`);
   console.log(`Kamailio         | ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_PORT}`);
   console.log(`Kamailio API     | ${process.env.KAMAILIO_API_URL}`);
