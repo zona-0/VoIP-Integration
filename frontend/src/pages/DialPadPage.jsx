@@ -44,7 +44,6 @@ function IncomingCallDialog({ caller, onAnswer, onAnswerVideo, onReject }) {
 
 function CallScreen({ number, callType, status, duration, onEnd, onSwitchToVideo, muted, setMuted, speakerOn, setSpeakerOn, videoOn, setVideoOn, remoteVideoRef, localVideoRef }) {
   const fmt = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-
   const handleMute = () => { const n = !muted; setMuted(n); toggleMute(n); };
   const handleVideo = () => { const n = !videoOn; setVideoOn(n); toggleCamera(n); };
 
@@ -143,7 +142,6 @@ export default function DialPadPage() {
   const [videoOn, setVideoOn] = useState(true);
   const [sipStatus, setSipStatus] = useState('');
   const [incomingCall, setIncomingCall] = useState(null);
-  const [dbLog, setDbLog] = useState([]);
 
   const timer = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -151,29 +149,20 @@ export default function DialPadPage() {
 
   const user = JSON.parse(localStorage.getItem('caas_user') || '{}');
 
-  const addLog = (msg, type = 'info') => {
-    const time = new Date().toLocaleTimeString('id-ID');
-    const entry = { time, msg, type };
-    setDbLog(prev => [entry, ...prev].slice(0, 10));
-    if (type === 'success') console.log(`[DB] ${time} SUCCESS: ${msg}`);
-    else if (type === 'error') console.error(`[DB] ${time} ERROR: ${msg}`);
-    else console.log(`[DB] ${time} INFO: ${msg}`);
-  };
-
   useEffect(() => {
     if (user.number) {
       const savedPassword = sessionStorage.getItem('caas_password') || 'test1234';
-      console.log('[SIP] init for:', user.number);
+      console.log('[SIP] Init for:', user.number);
       initSIP({
-        number : user.number,
-        password : savedPassword,
-        onStatus : ({ type, message }) => {
+        number: user.number,
+        password: savedPassword,
+        onStatus: ({ type, message }) => {
           setSipStatus(message);
           console.log('[SIP] Status:', type, message);
         },
         onIncoming: (callInfo) => {
           setIncomingCall(callInfo);
-          console.log('[SIP] incoming from:', callInfo.number);
+          console.log('[SIP] Incoming from:', callInfo.number);
         },
       });
     }
@@ -200,54 +189,48 @@ export default function DialPadPage() {
     setSpeakerOn(false);
     setVideoOn(true);
 
-    addLog(`save log to db target=${number} type=${type}`);
-
+    console.log(`[DB] Saving call log... target=${number} type=${type}`);
     try {
       const res = await api.post('/api/calls/start', { targetNumber: number, callType: type });
       setCallId(res.data.callId);
-      addLog(`Log call success save to db | ID=${res.data.callId} | target=${number} | type=${type}`, 'success');
+      console.log(`[DB] SUCCESS: Call log saved | ID=${res.data.callId} | target=${number} | type=${type}`);
 
       makeCall({
-        targetNumber : number,
-        isVideo : type === 'video',
+        targetNumber: number,
+        isVideo: type === 'video',
         remoteVideoRef,
         localVideoRef,
-        onCallStatus : (newStatus) => {
+        onCallStatus: (newStatus) => {
           setStatus(newStatus);
-          console.log('[CALL] Status:', newStatus);
+          console.log('[CALL] Status changed:', newStatus);
           if (newStatus === 'Call Ended' || newStatus.startsWith('Call Failed')) {
-            setTimeout(() => {
-              setInCall(false);
-              setStatus('');
-              setDuration(0);
-            }, 2000);
+            setTimeout(() => { setInCall(false); setStatus(''); setDuration(0); }, 2000);
           }
         },
       });
-
     } catch (err) {
-      addLog(`failed save log to db: ${err.message}`, 'error');
+      console.error(`[DB] FAILED: Save call log | error=${err.message}`);
       setTimeout(() => setStatus('Ringing....'), 1500);
       setTimeout(() => setStatus('In Call....'), 4000);
     }
   };
 
   const handleEndCall = async () => {
-    const d   = fmt(duration);
+    const d = fmt(duration);
     const sts = duration > 0 ? 'ended' : 'missed';
     endCall();
-    addLog(`update call log ID=${callId} duration=${d} status=${sts}`);
+    console.log(`[DB] Updating call log... ID=${callId} duration=${d} status=${sts}`);
     try {
       await api.post('/api/calls/end', {
         callId,
-        targetNumber : number,
-        duration     : d,
-        status       : sts,
+        targetNumber: number,
+        duration: d,
+        status: sts,
         callType,
       });
-      addLog(`Log call success update | ID=${callId} | duration=${d} | status=${sts}`, 'success');
+      console.log(`[DB] SUCCESS: Call log updated | ID=${callId} | duration=${d} | status=${sts}`);
     } catch (err) {
-      addLog(`failed update call log: ${err.message}`, 'error');
+      console.error(`[DB] FAILED: Update call log | error=${err.message}`);
     }
     setInCall(false);
     setStatus('');
@@ -354,39 +337,19 @@ export default function DialPadPage() {
               </svg>
             </button>
             <button style={{ ...s.voiceBtn, opacity: number?1:.4 }}
-              onClick={() => startCall('voice')} disabled={!number} title="Voice Call">
+              onClick={() => startCall('voice')} disabled={!number}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" fill="white"/>
               </svg>
             </button>
             <button style={{ ...s.videoBtn, opacity: number?1:.4 }}
-              onClick={() => startCall('video')} disabled={!number} title="Video Call">
+              onClick={() => startCall('video')} disabled={!number}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                 <rect x="2" y="7" width="15" height="10" rx="2" stroke="white" strokeWidth="2"/>
                 <path d="M17 9l5-3v12l-5-3V9z" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
               </svg>
             </button>
           </div>
-
-          {dbLog.length > 0 && (
-            <div style={s.logBox}>
-              <p style={s.logTitle}>DB Activity</p>
-              {dbLog.map((log, i) => (
-                <div key={i} style={{
-                  ...s.logEntry,
-                  borderLeft: `3px solid ${log.type === 'success' ? '#22C55E' : log.type === 'error' ? '#EF4444' : '#94A3B8'}`,
-                  background: log.type === 'success' ? '#F0FDF4' : log.type === 'error' ? '#FEF2F2' : '#F8FAFC',
-                }}>
-                  <span style={{ ...s.logTime, color: log.type === 'success' ? '#166534' : log.type === 'error' ? '#DC2626' : '#64748B' }}>
-                    {log.time}
-                  </span>
-                  <span style={{ ...s.logMsg, color: log.type === 'success' ? '#166534' : log.type === 'error' ? '#DC2626' : '#334155' }}>
-                    {log.msg}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </main>
 
@@ -395,37 +358,30 @@ export default function DialPadPage() {
   );
 }
 
-// style sec
 const s = {
   page: { display:'flex', flexDirection:'column', minHeight:'100vh', background:'#f5f5f5' },
   main: { flex:1, display:'flex', justifyContent:'center', padding:'32px 16px' },
   card: { background:'white', borderRadius:24, padding:'28px 24px', width:'100%', maxWidth:360, boxShadow:'0 8px 32px rgba(0,0,0,.10)', height:'fit-content' },
-  title:{ fontSize:20, fontWeight:800, color:'#222', textAlign:'center', marginBottom:4 },
-  sub:  { fontSize:13, color:'#aaa', textAlign:'center', marginBottom:12 },
-  sipStatus: { borderRadius:10, padding:'6px 12px', fontSize:12, fontWeight:600, textAlign:'center', marginBottom:12, display:'flex', alignItems:'center', justifyContent:'center' },
+  title: { fontSize:20, fontWeight:800, color:'#222', textAlign:'center', marginBottom:4 },
+  sub: { fontSize:13, color:'#aaa', textAlign:'center', marginBottom:12 },
+  sipStatus: { borderRadius:10, padding:'6px 12px', fontSize:12, fontWeight:600, textAlign:'center', marginBottom:12 },
   disp: { background:'#f8f8f8', borderRadius:14, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', minHeight:52, marginBottom:16, border:'1.5px solid #eee' },
   dn: { fontSize:28, fontWeight:700, color:'#222', letterSpacing:2, fontVariantNumeric:'tabular-nums' },
-  delIcon:   { background:'none', border:'none', cursor:'pointer', padding:6, display:'flex' },
+  delIcon: { background:'none', border:'none', cursor:'pointer', padding:6, display:'flex' },
   pad: { display:'flex', flexDirection:'column', gap:8, marginBottom:20 },
   row: { display:'flex', gap:8, justifyContent:'center' },
   key: { flex:1, maxWidth:96, height:58, background:'#fafafa', border:'1.5px solid #eee', borderRadius:14, fontSize:22, fontWeight:700, color:'#222', cursor:'pointer', transition:'background .12s', fontFamily:'inherit' },
   btns: { display:'flex', alignItems:'center', justifyContent:'center', gap:16 },
-  bsDel:{ width:48, height:48, borderRadius:14, background:'#f5f5f5', border:'1.5px solid #eee', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
+  bsDel: { width:48, height:48, borderRadius:14, background:'#f5f5f5', border:'1.5px solid #eee', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
   voiceBtn: { width:64, height:64, borderRadius:'50%', background:'#22C55E', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(34,197,94,.35)', transition:'opacity .15s' },
   videoBtn: { width:64, height:64, borderRadius:'50%', background:'#3B82F6', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(59,130,246,.35)', transition:'opacity .15s' },
-  logBox: { marginTop:16, borderRadius:12, overflow:'hidden', border:'1px solid #E2E8F0' },
-  logTitle: { fontSize:11, fontWeight:700, color:'#64748B', padding:'6px 10px', background:'#F1F5F9', textTransform:'uppercase', letterSpacing:'0.5px' },
-  logEntry: { padding:'6px 10px', marginBottom:2, paddingLeft:10 },
-  logTime: { fontSize:10, fontWeight:600, marginRight:6, fontVariantNumeric:'tabular-nums' },
-  logMsg: { fontSize:11 },
 };
 
-// screen sec
 const sc = {
   overlay: { position:'fixed', inset:0, background:'linear-gradient(160deg,#7B0000 0%,#C8272D 60%,#8B0000 100%)', zIndex:999, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'48px 24px' },
   videoWrap: { position:'relative', width:'100%', maxWidth:420, height:220, borderRadius:16, overflow:'hidden', background:'rgba(0,0,0,.25)' },
   localBox: { position:'absolute', bottom:10, right:10, width:80, height:80, borderRadius:12, overflow:'hidden', background:'rgba(0,0,0,.4)', border:'2px solid rgba(255,255,255,.25)' },
-  avatarWrap:{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 },
+  avatarWrap: { display:'flex', flexDirection:'column', alignItems:'center', gap:14 },
   avatar: { width:96, height:96, borderRadius:'50%', background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid rgba(255,255,255,.2)' },
   badge: { background:'rgba(255,255,255,.2)', color:'white', borderRadius:20, padding:'5px 16px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:6 },
   info: { textAlign:'center' },
@@ -437,7 +393,6 @@ const sc = {
   endBtn: { width:66, height:66, borderRadius:'50%', background:'#FF3B30', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 20px rgba(255,59,48,.5)' },
 };
 
-// incoming call sec
 const ic = {
   overlay: { position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' },
   card: { background:'white', borderRadius:24, padding:'32px 28px', width:300, textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,.3)' },
@@ -447,6 +402,6 @@ const ic = {
   btns: { display:'flex', justifyContent:'center', gap:16, marginBottom:8 },
   rejectBtn: { width:56, height:56, borderRadius:'50%', background:'#FF3B30', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(255,59,48,.4)' },
   answerBtn: { width:56, height:56, borderRadius:'50%', background:'#22C55E', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(34,197,94,.4)' },
-  videoAnswerBtn:{ width:56, height:56, borderRadius:'50%', background:'#3B82F6', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(59,130,246,.4)' },
+  videoAnswerBtn: { width:56, height:56, borderRadius:'50%', background:'#3B82F6', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(59,130,246,.4)' },
   hint: { fontSize:11, color:'#bbb' },
 };
