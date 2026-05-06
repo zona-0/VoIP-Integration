@@ -1,0 +1,24 @@
+HIT API
+
+Health Check:
+Get -> https://voip-integration-production.up.railway.app/api/health
+
+Test Login:
+POST -> https://voip-integration-production.up.railway.app/api/auth/login
+Body -> raw -> json: 
+{
+  "number": "081234567890",
+  "password": "test1234"
+}
+
+
+Start Call Test:
+POST -> https://voip-integration-production.up.railway.app/api/calls/start
+
+Get Call Log:
+GET -> https://voip-integration-production.up.railway.app/api/calls/log
+
+End Call Log:
+POST ->  https://voip-integration-production.up.railway.app/api/calls/end
+
+
