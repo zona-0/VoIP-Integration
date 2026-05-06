@@ -125,18 +125,18 @@ function CallScreen({ number, callType, status, duration, onEnd, muted, setMuted
 }
 
 export default function CallLogPage() {
-  const [logs, setLogs]      = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [filter, setFilter]    = useState('all');
-  const [inCall, setInCall]    = useState(false);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
+  const [inCall, setInCall] = useState(false);
   const [callNumber, setCallNumber]= useState('');
   const [callType, setCallType]  = useState('voice');
-  const [status, setStatus]    = useState('Calling....');
-  const [duration, setDuration]  = useState(0);
-  const [callId, setCallId]    = useState(null);
-  const [muted, setMuted]     = useState(false);
+  const [status, setStatus] = useState('Calling....');
+  const [duration, setDuration] = useState(0);
+  const [callId, setCallId] = useState(null);
+  const [muted, setMuted] = useState(false);
   const [speakerOn, setSpeakerOn] = useState(false);
-  const [videoOn, setVideoOn]   = useState(true);
+  const [videoOn, setVideoOn] = useState(true);
   const timer = useRef(null);
 
   useEffect(() => {
@@ -231,7 +231,7 @@ export default function CallLogPage() {
           <div style={s.empty}><div style={s.spin}/><p>Memuat...</p></div>
         ) : filtered.length === 0 ? (
           <div style={s.empty}>
-            <p style={{ fontSize:40, marginBottom:8 }}>📵</p>
+            {/* <p style={{ fontSize:40, marginBottom:8 }}>📵</p> */}
             <p style={{ color:'#aaa' }}>Tidak ada riwayat panggilan</p>
           </div>
         ) : (
@@ -254,11 +254,10 @@ export default function CallLogPage() {
                     <div style={s.time}>{fmtDate(log.timestamp)}</div>
                   </div>
 
-                  {/* Tombol panggil balik */}
                   <div style={s.right}>
                     <div style={s.dur}>{log.duration}</div>
                     <div style={s.callBtns}>
-                      {/* Voice call back */}
+
                       <button
                         style={s.voiceBack}
                         onClick={() => startCall(log.number, 'voice')}
@@ -267,7 +266,7 @@ export default function CallLogPage() {
                           <path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z" fill="white"/>
                         </svg>
                       </button>
-                      {/* Video call back */}
+
                       <button
                         style={s.videoBack}
                         onClick={() => startCall(log.number, 'video')}
@@ -277,7 +276,6 @@ export default function CallLogPage() {
                           <path d="M17 9l5-3v12l-5-3V9z" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
                         </svg>
                       </button>
-                      {/* Hapus */}
                       <button style={s.delBtn} onClick={() => handleDelete(log.id)}>✕</button>
                     </div>
                   </div>

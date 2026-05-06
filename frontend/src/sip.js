@@ -1,9 +1,9 @@
 import JsSIP from 'jssip';
 
-const KAMAILIO_WS   = import.meta.env.VITE_KAMAILIO_WS   || '0.tcp.ap.ngrok.io:12345';
+const KAMAILIO_WS = import.meta.env.VITE_KAMAILIO_WS;
 const KAMAILIO_HOST = import.meta.env.VITE_KAMAILIO_HOST || '192.168.56.10';
 
-let ua             = null;
+let ua = null;
 let currentSession = null;
 let onStatusUpdate = null;
 let onIncomingCall = null;
@@ -22,27 +22,27 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
   const socket = new JsSIP.WebSocketInterface(`wss://${KAMAILIO_WS}`);
 
   ua = new JsSIP.UA({
-    sockets      : [socket],
-    uri          : `sip:${number}@${KAMAILIO_HOST}`,
-    password     : password,
-    display_name : number,
-    register     : true,
+    sockets         : [socket],
+    uri             : `sip:${number}@${KAMAILIO_HOST}`,
+    password        : password,
+    display_name    : number,
+    register        : true,
     register_expires: 300,
-    contact_uri  : `sip:${number}@${KAMAILIO_HOST}`,
+    contact_uri     : `sip:${number}@${KAMAILIO_HOST}`,
   });
 
   ua.on('registered', () => {
-    console.log('✅ SIP Registered:', number);
+    console.log('[SIP] Registered:', number);
     onStatusUpdate?.({ type: 'registered', message: 'Terdaftar ke Kamailio' });
   });
 
   ua.on('registrationFailed', (e) => {
-    console.error('❌ SIP Registration Failed:', e.cause);
+    console.error('[SIP] Registration Failed:', e.cause);
     onStatusUpdate?.({ type: 'error', message: 'Gagal daftar ke Kamailio: ' + e.cause });
   });
 
   ua.on('disconnected', () => {
-    console.warn('⚠️ SIP Disconnected');
+    console.warn('[SIP] Disconnected');
     onStatusUpdate?.({ type: 'disconnected', message: 'Koneksi SIP terputus' });
   });
 
@@ -50,13 +50,13 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
     if (originator === 'remote') {
       currentSession = session;
       const callerNumber = session.remote_identity.uri.user;
-      console.log('📞 Panggilan masuk dari:', callerNumber);
+      console.log('[SIP] Incoming call from:', callerNumber);
 
       onIncomingCall?.({
-        number  : callerNumber,
-        session : session,
-        answer  : (isVideo) => answerCall(isVideo),
-        reject  : () => rejectCall(),
+        number : callerNumber,
+        session: session,
+        answer : (isVideo) => answerCall(isVideo),
+        reject : () => rejectCall(),
       });
 
       setTimeout(() => {
@@ -68,16 +68,18 @@ export function initSIP({ number, password, onStatus, onIncoming }) {
   });
 
   ua.start();
-  console.log('🔄 SIP UA Starting...');
+  console.log('[SIP] user agent start...');
 }
 
 export function makeCall({ targetNumber, isVideo = false, onCallStatus, remoteVideoRef, localVideoRef }) {
   if (!ua || !ua.isRegistered()) {
+    console.warn('[SIP] Not registered');
     onCallStatus?.('Tidak terdaftar ke Kamailio');
     return null;
   }
 
   const target = `sip:${targetNumber}@${KAMAILIO_HOST}`;
+  console.log('[SIP] Calling:', target);
 
   const options = {
     mediaConstraints: {
@@ -99,29 +101,29 @@ export function makeCall({ targetNumber, isVideo = false, onCallStatus, remoteVi
   currentSession = ua.call(target, options);
 
   currentSession.on('progress', () => {
-    console.log('📡 Ringing...');
+    console.log('[SIP] Ringing');
     onCallStatus?.('Ringing....');
   });
 
   currentSession.on('accepted', () => {
-    console.log('✅ Call Accepted');
+    console.log('[SIP] Call Accepted');
     onCallStatus?.('In Call....');
   });
 
   currentSession.on('confirmed', () => {
-    console.log('✅ Call Confirmed');
+    console.log('[SIP] Call Confirmed');
     onCallStatus?.('In Call....');
     _attachStream(remoteVideoRef, localVideoRef, isVideo);
   });
 
   currentSession.on('ended', (e) => {
-    console.log('📴 Call Ended:', e.cause);
+    console.log('[SIP] Call Ended:', e.cause);
     onCallStatus?.('Call Ended');
     _cleanupStream(localVideoRef);
   });
 
   currentSession.on('failed', (e) => {
-    console.error('❌ Call Failed:', e.cause);
+    console.error('[SIP] Call Failed:', e.cause);
     onCallStatus?.('Call Failed: ' + e.cause);
     _cleanupStream(localVideoRef);
   });
@@ -155,9 +157,7 @@ export function rejectCall() {
 
 export function endCall() {
   if (!currentSession) return;
-  try {
-    currentSession.terminate();
-  } catch {}
+  try { currentSession.terminate(); } catch {}
   currentSession = null;
 }
 
@@ -191,13 +191,12 @@ export function isRegistered() {
 }
 
 function _attachStream(remoteRef, localRef, isVideo) {
-  // Local stream (kamera sendiri)
   if (isVideo && localRef?.current) {
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .then(stream => {
         if (localRef.current) localRef.current.srcObject = stream;
       })
-      .catch(console.error);
+      .catch(err => console.error('[SIP] Camera error:', err));
   }
 }
 

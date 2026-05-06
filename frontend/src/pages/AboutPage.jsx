@@ -6,7 +6,7 @@ export default function AboutPage() {
   const specs = [
     { label:'Aplikasi', value:'VoIP CaaS-02' },
     { label:'Versi', value:'1.0.0' },
-    { label:'Protokol', value:'SIP/UDP' },
+    // { label:'Protokol', value:'SIP/UDP' },
     { label:'Port', value:'8080' },
     { label:'Server', value: user.server || '-' },
     { label:'Nomor Aktif', value: user.number || '-' },
