@@ -50,6 +50,7 @@ initDB().catch(err => console.error('[DB] Init error:', err.message));
 
 async function validateKamailio(number, password) {
   let conn;
+  const apiUrl = process.env.KAMAILIO_API_URL
   console.log(`[KAMAILIO] Validating: ${number}`);
   console.log(`[KAMAILIO] Host: ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_MYSQL_PORT || 3306}`);
   try {
