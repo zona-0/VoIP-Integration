@@ -1,9 +1,10 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
+const cors    = require('cors');
 const crypto  = require('crypto');
 const { Pool } = require('pg');
-const mysql = require('mysql2/promise');
+const https   = require('https');
+const http    = require('http');
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -49,32 +50,55 @@ async function initDB() {
 initDB().catch(err => console.error('[DB] Init error:', err.message));
 
 async function validateKamailio(number, password) {
-  let conn;
-  const apiUrl = process.env.KAMAILIO_API_URL
+  const apiUrl = process.env.KAMAILIO_API_URL;
   console.log(`[KAMAILIO] Validating: ${number}`);
-  console.log(`[KAMAILIO] Host: ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_MYSQL_PORT || 3306}`);
-  try {
-    conn = await mysql.createConnection({
-      host    : process.env.KAMAILIO_HOST     || '192.168.56.10',
-      port    : parseInt(process.env.KAMAILIO_MYSQL_PORT) || 3306,
-      user    : process.env.KAMAILIO_MYSQL_USER || 'kamailio_read',
-      password: process.env.KAMAILIO_MYSQL_PASS || 'kamailio_read_pass',
-      database: 'kamailio',
-    });
-    console.log('[KAMAILIO] MySQL connected');
-    const [rows] = await conn.execute(
-      'SELECT username FROM subscriber WHERE username = ? AND password = ?',
-      [number, password]
-    );
-    console.log(`[KAMAILIO] Result: ${rows.length} row(s)`);
-    return rows.length > 0;
-  } catch (e) {
-    console.error('[KAMAILIO] Error:', e.message);
+  console.log(`[KAMAILIO] API URL: ${apiUrl}`);
+
+  if (!apiUrl) {
+    console.error('[KAMAILIO] KAMAILIO_API_URL not set');
     return false;
-  } finally {
-    if (conn) await conn.end();
-    console.log('[KAMAILIO] Connection closed');
   }
+
+  return new Promise((resolve) => {
+    const body = JSON.stringify({ number, password });
+    const url  = new URL('/validate', apiUrl);
+    const lib  = url.protocol === 'https:' ? https : http;
+
+    const req = lib.request(url, {
+      method : 'POST',
+      headers: {
+        'Content-Type'  : 'application/json',
+        'Content-Length': Buffer.byteLength(body),
+      },
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          console.log(`[KAMAILIO] Response: valid=${json.valid}`);
+          resolve(json.valid === true);
+        } catch (e) {
+          console.error('[KAMAILIO] Parse error:', e.message);
+          resolve(false);
+        }
+      });
+    });
+
+    req.on('error', (e) => {
+      console.error('[KAMAILIO] Request error:', e.message);
+      resolve(false);
+    });
+
+    req.setTimeout(10000, () => {
+      console.error('[KAMAILIO] Timeout');
+      req.destroy();
+      resolve(false);
+    });
+
+    req.write(body);
+    req.end();
+  });
 }
 
 app.use(cors({
@@ -287,10 +311,10 @@ app.delete('/api/calls/log/:id', auth, async (req, res) => {
 
 app.listen(PORT, () => {
   console.log('================================');
-  console.log(`CaaS O2 Backend | Port: ${PORT}`);
-  console.log(`Mode | ${MOCK_MODE ? 'MOCK' : 'PRODUCTION'}`);
-  console.log(`Kamailio | ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_PORT}`);
-  console.log(`Kamailio MySQL | ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_MYSQL_PORT || 3306}`);
-  console.log(`Supabase DB | ${process.env.DATABASE_URL ? 'configured' : 'NOT SET'}`);
+  console.log(`CaaS O2 Backend  | Port: ${PORT}`);
+  console.log(`Mode             | ${MOCK_MODE ? 'MOCK' : 'PRODUCTION'}`);
+  console.log(`Kamailio         | ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_PORT}`);
+  console.log(`Kamailio API     | ${process.env.KAMAILIO_API_URL}`);
+  console.log(`Supabase DB      | ${process.env.DATABASE_URL ? 'configured' : 'NOT SET'}`);
   console.log('================================');
 });
