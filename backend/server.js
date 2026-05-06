@@ -286,10 +286,10 @@ app.delete('/api/calls/log/:id', auth, async (req, res) => {
 
 app.listen(PORT, () => {
   console.log('================================');
-  console.log(`CaaS O2 Backend  | Port: ${PORT}`);
-  console.log(`Mode             | ${MOCK_MODE ? 'MOCK' : 'PRODUCTION'}`);
-  console.log(`Kamailio         | ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_PORT}`);
-  console.log(`Kamailio MySQL   | ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_MYSQL_PORT || 3306}`);
-  console.log(`Supabase DB      | ${process.env.DATABASE_URL ? 'configured' : 'NOT SET'}`);
+  console.log(`CaaS O2 Backend | Port: ${PORT}`);
+  console.log(`Mode | ${MOCK_MODE ? 'MOCK' : 'PRODUCTION'}`);
+  console.log(`Kamailio | ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_PORT}`);
+  console.log(`Kamailio MySQL | ${process.env.KAMAILIO_HOST}:${process.env.KAMAILIO_MYSQL_PORT || 3306}`);
+  console.log(`Supabase DB | ${process.env.DATABASE_URL ? 'configured' : 'NOT SET'}`);
   console.log('================================');
 });

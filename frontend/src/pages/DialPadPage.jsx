@@ -6,7 +6,6 @@ import { initSIP, makeCall, endCall, toggleMute, toggleCamera, isRegistered } fr
 
 const KEYS = [['1','2','3'],['4','5','6'],['7','8','9'],['*','0','#']];
 
-// ─── Incoming Call Dialog ─────────────────────────────────────────────────────
 function IncomingCallDialog({ caller, onAnswer, onAnswerVideo, onReject }) {
   return (
     <div style={ic.overlay}>
@@ -43,7 +42,6 @@ function IncomingCallDialog({ caller, onAnswer, onAnswerVideo, onReject }) {
   );
 }
 
-// ─── Call Screen ──────────────────────────────────────────────────────────────
 function CallScreen({ number, callType, status, duration, onEnd, onSwitchToVideo, muted, setMuted, speakerOn, setSpeakerOn, videoOn, setVideoOn, remoteVideoRef, localVideoRef }) {
   const fmt = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 
@@ -141,31 +139,28 @@ function CallScreen({ number, callType, status, duration, onEnd, onSwitchToVideo
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DialPadPage() {
-  const [number,       setNumber]       = useState('');
-  const [inCall,       setInCall]       = useState(false);
-  const [callType,     setCallType]     = useState('voice');
-  const [status,       setStatus]       = useState('');
-  const [duration,     setDuration]     = useState(0);
-  const [callId,       setCallId]       = useState(null);
-  const [muted,        setMuted]        = useState(false);
-  const [speakerOn,    setSpeakerOn]    = useState(false);
-  const [videoOn,      setVideoOn]      = useState(true);
-  const [sipStatus,    setSipStatus]    = useState('');
+  const [number, setNumber] = useState('');
+  const [inCall, setInCall] = useState(false);
+  const [callType, setCallType] = useState('voice');
+  const [status, setStatus] = useState('');
+  const [duration, setDuration] = useState(0);
+  const [callId, setCallId] = useState(null);
+  const [muted, setMuted] = useState(false);
+  const [speakerOn, setSpeakerOn] = useState(false);
+  const [videoOn, setVideoOn] = useState(true);
+  const [sipStatus, setSipStatus] = useState('');
   const [incomingCall, setIncomingCall] = useState(null);
 
-  const timer        = useRef(null);
+  const timer = useRef(null);
   const remoteVideoRef = useRef(null);
-  const localVideoRef  = useRef(null);
+  const localVideoRef = useRef(null);
 
   const user = JSON.parse(localStorage.getItem('caas_user') || '{}');
   const token = localStorage.getItem('caas_token');
 
-  // Init SIP saat halaman dibuka
   useEffect(() => {
     if (user.number) {
-      // Ambil password dari session — untuk production ambil dari secure storage
       const savedPassword = sessionStorage.getItem('caas_password') || 'test1234';
 
       initSIP({
@@ -205,11 +200,9 @@ export default function DialPadPage() {
     setVideoOn(true);
 
     try {
-      // Simpan ke database
       const res = await api.post('/api/calls/start', { targetNumber: number, callType: type });
       setCallId(res.data.callId);
 
-      // Panggilan SIP nyata via JsSIP
       makeCall({
         targetNumber : number,
         isVideo      : type === 'video',
@@ -228,20 +221,19 @@ export default function DialPadPage() {
       });
 
     } catch {
-      // Fallback simulasi jika SIP belum siap
       setTimeout(() => setStatus('Ringing....'), 1500);
       setTimeout(() => setStatus('In Call....'), 4000);
     }
   };
 
   const handleEndCall = async () => {
-    endCall(); // Tutup sesi SIP
+    endCall(); 
     try {
       await api.post('/api/calls/end', {
         callId,
         targetNumber : number,
-        duration     : fmt(duration),
-        status       : duration > 0 ? 'ended' : 'missed',
+        duration : fmt(duration),
+        status : duration > 0 ? 'ended' : 'missed',
         callType,
       });
     } catch {}
@@ -272,14 +264,12 @@ export default function DialPadPage() {
     setIncomingCall(null);
   };
 
-  // Simpan password ke sessionStorage saat login (tambahkan di LoginPage)
   const [callNumber, setCallNumber] = useState('');
 
   return (
     <div style={s.page}>
       <Navbar />
 
-      {/* Panggilan masuk */}
       {incomingCall && (
         <IncomingCallDialog
           caller={incomingCall.number}
@@ -289,7 +279,6 @@ export default function DialPadPage() {
         />
       )}
 
-      {/* Layar panggilan aktif */}
       {inCall && (
         <CallScreen
           number={number || callNumber}
@@ -311,7 +300,6 @@ export default function DialPadPage() {
           <h2 style={s.title}>Dial Pad</h2>
           <p style={s.sub}>Masukkan nomor tujuan panggilan</p>
 
-          {/* Status SIP */}
           {sipStatus && (
             <div style={{
               ...s.sipStatus,
@@ -386,49 +374,49 @@ export default function DialPadPage() {
 }
 
 const s = {
-  page:      { display:'flex', flexDirection:'column', minHeight:'100vh', background:'#f5f5f5' },
-  main:      { flex:1, display:'flex', justifyContent:'center', padding:'32px 16px' },
-  card:      { background:'white', borderRadius:24, padding:'28px 24px', width:'100%', maxWidth:360, boxShadow:'0 8px 32px rgba(0,0,0,.10)', height:'fit-content' },
-  title:     { fontSize:20, fontWeight:800, color:'#222', textAlign:'center', marginBottom:4 },
-  sub:       { fontSize:13, color:'#aaa', textAlign:'center', marginBottom:12 },
+  page: { display:'flex', flexDirection:'column', minHeight:'100vh', background:'#f5f5f5' },
+  main: { flex:1, display:'flex', justifyContent:'center', padding:'32px 16px' },
+  card: { background:'white', borderRadius:24, padding:'28px 24px', width:'100%', maxWidth:360, boxShadow:'0 8px 32px rgba(0,0,0,.10)', height:'fit-content' },
+  title: { fontSize:20, fontWeight:800, color:'#222', textAlign:'center', marginBottom:4 },
+  sub: { fontSize:13, color:'#aaa', textAlign:'center', marginBottom:12 },
   sipStatus: { borderRadius:10, padding:'6px 12px', fontSize:12, fontWeight:600, textAlign:'center', marginBottom:12 },
-  disp:      { background:'#f8f8f8', borderRadius:14, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', minHeight:52, marginBottom:16, border:'1.5px solid #eee' },
-  dn:        { fontSize:28, fontWeight:700, color:'#222', letterSpacing:2, fontVariantNumeric:'tabular-nums' },
-  delIcon:   { background:'none', border:'none', cursor:'pointer', padding:6, display:'flex' },
-  pad:       { display:'flex', flexDirection:'column', gap:8, marginBottom:20 },
-  row:       { display:'flex', gap:8, justifyContent:'center' },
-  key:       { flex:1, maxWidth:96, height:58, background:'#fafafa', border:'1.5px solid #eee', borderRadius:14, fontSize:22, fontWeight:700, color:'#222', cursor:'pointer', transition:'background .12s', fontFamily:'inherit' },
-  btns:      { display:'flex', alignItems:'center', justifyContent:'center', gap:16 },
-  bsDel:     { width:48, height:48, borderRadius:14, background:'#f5f5f5', border:'1.5px solid #eee', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
-  voiceBtn:  { width:64, height:64, borderRadius:'50%', background:'#22C55E', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(34,197,94,.35)', transition:'opacity .15s' },
-  videoBtn:  { width:64, height:64, borderRadius:'50%', background:'#3B82F6', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(59,130,246,.35)', transition:'opacity .15s' },
+  disp: { background:'#f8f8f8', borderRadius:14, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', minHeight:52, marginBottom:16, border:'1.5px solid #eee' },
+  dn: { fontSize:28, fontWeight:700, color:'#222', letterSpacing:2, fontVariantNumeric:'tabular-nums' },
+  delIcon: { background:'none', border:'none', cursor:'pointer', padding:6, display:'flex' },
+  pad: { display:'flex', flexDirection:'column', gap:8, marginBottom:20 },
+  row: { display:'flex', gap:8, justifyContent:'center' },
+  key: { flex:1, maxWidth:96, height:58, background:'#fafafa', border:'1.5px solid #eee', borderRadius:14, fontSize:22, fontWeight:700, color:'#222', cursor:'pointer', transition:'background .12s', fontFamily:'inherit' },
+  btns: { display:'flex', alignItems:'center', justifyContent:'center', gap:16 },
+  bsDel: { width:48, height:48, borderRadius:14, background:'#f5f5f5', border:'1.5px solid #eee', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' },
+  voiceBtn: { width:64, height:64, borderRadius:'50%', background:'#22C55E', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(34,197,94,.35)', transition:'opacity .15s' },
+  videoBtn: { width:64, height:64, borderRadius:'50%', background:'#3B82F6', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(59,130,246,.35)', transition:'opacity .15s' },
 };
 
 const sc = {
-  overlay:   { position:'fixed', inset:0, background:'linear-gradient(160deg,#7B0000 0%,#C8272D 60%,#8B0000 100%)', zIndex:999, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'48px 24px' },
+  overlay: { position:'fixed', inset:0, background:'linear-gradient(160deg,#7B0000 0%,#C8272D 60%,#8B0000 100%)', zIndex:999, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'space-between', padding:'48px 24px' },
   videoWrap: { position:'relative', width:'100%', maxWidth:420, height:220, borderRadius:16, overflow:'hidden', background:'rgba(0,0,0,.25)' },
-  localBox:  { position:'absolute', bottom:10, right:10, width:80, height:80, borderRadius:12, overflow:'hidden', background:'rgba(0,0,0,.4)', border:'2px solid rgba(255,255,255,.25)' },
+  localBox: { position:'absolute', bottom:10, right:10, width:80, height:80, borderRadius:12, overflow:'hidden', background:'rgba(0,0,0,.4)', border:'2px solid rgba(255,255,255,.25)' },
   avatarWrap:{ display:'flex', flexDirection:'column', alignItems:'center', gap:14 },
-  avatar:    { width:96, height:96, borderRadius:'50%', background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid rgba(255,255,255,.2)' },
-  badge:     { background:'rgba(255,255,255,.2)', color:'white', borderRadius:20, padding:'5px 16px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:6 },
-  info:      { textAlign:'center' },
-  num:       { fontSize:26, fontWeight:700, color:'white', marginBottom:6 },
-  stat:      { fontSize:15, color:'rgba(255,255,255,.8)', marginBottom:4 },
-  time:      { fontSize:20, fontWeight:600, color:'white', fontVariantNumeric:'tabular-nums' },
-  ctrlRow:   { display:'flex', alignItems:'center', justifyContent:'center', gap:20 },
-  ctrlBtn:   { width:56, height:56, borderRadius:'50%', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'background .2s' },
-  endBtn:    { width:66, height:66, borderRadius:'50%', background:'#FF3B30', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 20px rgba(255,59,48,.5)' },
+  avatar: { width:96, height:96, borderRadius:'50%', background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', border:'2px solid rgba(255,255,255,.2)' },
+  badge: { background:'rgba(255,255,255,.2)', color:'white', borderRadius:20, padding:'5px 16px', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:6 },
+  info: { textAlign:'center' },
+  num: { fontSize:26, fontWeight:700, color:'white', marginBottom:6 },
+  stat: { fontSize:15, color:'rgba(255,255,255,.8)', marginBottom:4 },
+  time: { fontSize:20, fontWeight:600, color:'white', fontVariantNumeric:'tabular-nums' },
+  ctrlRow: { display:'flex', alignItems:'center', justifyContent:'center', gap:20 },
+  ctrlBtn: { width:56, height:56, borderRadius:'50%', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'background .2s' },
+  endBtn: { width:66, height:66, borderRadius:'50%', background:'#FF3B30', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 20px rgba(255,59,48,.5)' },
 };
 
 const ic = {
-  overlay:      { position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' },
-  card:         { background:'white', borderRadius:24, padding:'32px 28px', width:300, textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,.3)' },
-  avatar:       { width:72, height:72, borderRadius:'50%', background:'linear-gradient(135deg,#C8272D,#E8434A)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' },
-  label:        { fontSize:13, color:'#aaa', marginBottom:4 },
-  number:       { fontSize:22, fontWeight:800, color:'#222', marginBottom:24 },
-  btns:         { display:'flex', justifyContent:'center', gap:16, marginBottom:8 },
-  rejectBtn:    { width:56, height:56, borderRadius:'50%', background:'#FF3B30', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(255,59,48,.4)' },
-  answerBtn:    { width:56, height:56, borderRadius:'50%', background:'#22C55E', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(34,197,94,.4)' },
+  overlay: { position:'fixed', inset:0, background:'rgba(0,0,0,.6)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' },
+  card: { background:'white', borderRadius:24, padding:'32px 28px', width:300, textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,.3)' },
+  avatar: { width:72, height:72, borderRadius:'50%', background:'linear-gradient(135deg,#C8272D,#E8434A)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' },
+  label: { fontSize:13, color:'#aaa', marginBottom:4 },
+  number: { fontSize:22, fontWeight:800, color:'#222', marginBottom:24 },
+  btns: { display:'flex', justifyContent:'center', gap:16, marginBottom:8 },
+  rejectBtn: { width:56, height:56, borderRadius:'50%', background:'#FF3B30', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(255,59,48,.4)' },
+  answerBtn: { width:56, height:56, borderRadius:'50%', background:'#22C55E', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(34,197,94,.4)' },
   videoAnswerBtn:{ width:56, height:56, borderRadius:'50%', background:'#3B82F6', border:'none', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 4px 16px rgba(59,130,246,.4)' },
-  hint:         { fontSize:11, color:'#bbb' },
+  hint: { fontSize:11, color:'#bbb' },
 };
