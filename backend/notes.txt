@@ -31,3 +31,7 @@ POST ->  https://voip-integration-production.up.railway.app/api/calls/end
 |  4 | 081918171615 | 192.168.56.10 | 12345    | 
 |  5 | 082233445566 | 192.168.56.10 | 66666    | 
 |  6 | 081133557799 | 192.168.56.10 | 22222
+
+TUNEL:
+9080 -> Vercel -> Calling
+9090 -> Railway -> Database

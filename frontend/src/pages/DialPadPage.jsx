@@ -184,7 +184,7 @@ export default function DialPadPage() {
           console.log('[SIP] Incoming from:', callInfo.number);
         },
         onCallEnd: () => {
-          console.log('[CALL] Remote ended — reset UI');
+          console.log('[CALL] Remote ended');
           setInCall(false);
           setStatus('');
           setDuration(0);
