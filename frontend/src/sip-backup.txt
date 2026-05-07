@@ -29,9 +29,8 @@ let ua = null;
 let currentSession = null;
 let onStatusUpdate = null;
 let onIncomingCall = null;
-let onCallEndGlobal = null;
 let remoteAudio = null;
-let localStreamRef = null;
+let onCallEndGlobal = null;
 
 function getOrCreateAudio() {
   if (!remoteAudio) {
@@ -42,73 +41,83 @@ function getOrCreateAudio() {
   return remoteAudio;
 }
 
+function attachRemoteStream(stream, remoteVideoRef, isVideo) {
+  console.log('[SIP] Attaching remote stream, isVideo:', isVideo);
+  if (isVideo && remoteVideoRef?.current) {
+    remoteVideoRef.current.srcObject = stream;
+    remoteVideoRef.current.play().catch(e => console.error('[VIDEO] Remote play error:', e));
+  } else {
+    const audio = getOrCreateAudio();
+    audio.srcObject = stream;
+    audio.play().catch(e => console.error('[AUDIO] Play error:', e));
+  }
+}
+
 function attachPeerConnection(session, remoteVideoRef, isVideo) {
   session.on('peerconnection', ({ peerconnection }) => {
-    console.log('[ICE] PeerConnection created | isVideo:', isVideo);
+    console.log('[ICE] PeerConnection created');
 
     peerconnection.oniceconnectionstatechange = () => {
       console.log('[ICE] State:', peerconnection.iceConnectionState);
     };
 
+    peerconnection.onicegatheringstatechange = () => {
+      console.log('[ICE] Gathering:', peerconnection.iceGatheringState);
+    };
+
     peerconnection.ontrack = (event) => {
-      const kind = event.track.kind;
-      console.log('[ICE] Got remote track:', kind);
-
-      if (kind === 'audio') {
-        const audio = getOrCreateAudio();
-        if (!audio.srcObject) {
-          audio.srcObject = event.streams[0];
-        } else {
-          const stream = audio.srcObject;
-          event.streams[0].getAudioTracks().forEach(t => stream.addTrack(t));
-        }
-        audio.play().catch(e => console.error('[AUDIO] Play error:', e));
-        console.log('[AUDIO] Remote audio attached');
-      }
-
-      if (kind === 'video' && isVideo && remoteVideoRef?.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-        remoteVideoRef.current.play().catch(e => console.error('[VIDEO] Remote play error:', e));
-        console.log('[VIDEO] Remote video attached');
+      console.log('[ICE] Got track:', event.track.kind, '| streams:', event.streams.length);
+      if (event.streams && event.streams[0]) {
+        attachRemoteStream(
+          event.streams[0],
+          remoteVideoRef,
+          isVideo && event.track.kind === 'video'
+        );
       }
     };
   });
 }
 
-function attachSessionEvents(session, onCallStatus, localVideoRef, isVideo) {
+function attachSessionEvents(session, onCallStatus, remoteVideoRef, localVideoRef, isVideo) {
   session.on('progress', () => {
     console.log('[SIP] Ringing');
     onCallStatus?.('Ringing....');
   });
 
   session.on('accepted', () => {
-    console.log('[SIP] Accepted');
+    console.log('[SIP] Call Accepted');
     onCallStatus?.('In Call....');
   });
 
   session.on('confirmed', () => {
-    console.log('[SIP] Confirmed');
+    console.log('[SIP] Call Confirmed');
     onCallStatus?.('In Call....');
+    if (isVideo) {
+      _attachLocalStream(localVideoRef);
+    }
   });
 
   session.on('ended', (e) => {
-    console.log('[SIP] Ended:', e.cause);
+    console.log('[SIP] Call Ended:', e.cause);
     onCallStatus?.('Call Ended');
     onCallEndGlobal?.();
-    _cleanupLocalStream();
+    _cleanupStream(localVideoRef);
     if (remoteAudio) remoteAudio.srcObject = null;
   });
 
   session.on('failed', (e) => {
-    console.error('[SIP] Failed:', e.cause);
+    console.error('[SIP] Call Failed:', e.cause);
     onCallStatus?.('Call Failed: ' + e.cause);
     onCallEndGlobal?.();
-    _cleanupLocalStream();
+    _cleanupStream(localVideoRef);
   });
 }
 
 export function initSIP({ number, password, onStatus, onIncoming, onCallEnd }) {
-  if (ua) { ua.stop(); ua = null; }
+  if (ua) {
+    ua.stop();
+    ua = null;
+  }
 
   onStatusUpdate = onStatus;
   onIncomingCall = onIncoming;
@@ -147,7 +156,25 @@ export function initSIP({ number, password, onStatus, onIncoming, onCallEnd }) {
     if (originator === 'remote') {
       currentSession = session;
       const callerNumber = session.remote_identity.uri.user;
-      console.log('[SIP] Incoming from:', callerNumber);
+      console.log('[SIP] Incoming call from:', callerNumber);
+
+      session.on('peerconnection', ({ peerconnection }) => {
+        console.log('[ICE] Incoming PeerConnection created');
+        peerconnection.oniceconnectionstatechange = () => {
+          console.log('[ICE] Incoming State:', peerconnection.iceConnectionState);
+        };
+        peerconnection.onicegatheringstatechange = () => {
+          console.log('[ICE] Incoming Gathering:', peerconnection.iceGatheringState);
+        };
+        peerconnection.ontrack = (event) => {
+          console.log('[ICE] Incoming track:', event.track.kind);
+          if (event.streams && event.streams[0]) {
+            const audio = getOrCreateAudio();
+            audio.srcObject = event.streams[0];
+            audio.play().catch(e => console.error('[AUDIO] Incoming play error:', e));
+          }
+        };
+      });
 
       onIncomingCall?.({
         number: callerNumber,
@@ -157,20 +184,19 @@ export function initSIP({ number, password, onStatus, onIncoming, onCallEnd }) {
       });
 
       session.on('ended', (e) => {
-        console.log('[SIP] Remote ended:', e.cause);
+        console.log('[SIP] Remote ended call:', e.cause);
         onCallEndGlobal?.();
         if (remoteAudio) remoteAudio.srcObject = null;
-        _cleanupLocalStream();
       });
 
       session.on('failed', (e) => {
         console.error('[SIP] Call failed:', e.cause);
         onCallEndGlobal?.();
-        _cleanupLocalStream();
       });
 
       setTimeout(() => {
         if (session.status === JsSIP.RTCSession.C.STATUS_WAITING_FOR_ANSWER) {
+          console.log('[SIP] Auto-reject after 30s');
           session.terminate();
         }
       }, 30000);
@@ -183,14 +209,13 @@ export function initSIP({ number, password, onStatus, onIncoming, onCallEnd }) {
 
 export function makeCall({ targetNumber, isVideo = false, onCallStatus, remoteVideoRef, localVideoRef }) {
   if (!ua || !ua.isRegistered()) {
+    console.warn('[SIP] Not registered');
     onCallStatus?.('Tidak terdaftar ke Kamailio');
     return null;
   }
 
   const target = `sip:${targetNumber}@${KAMAILIO_HOST}`;
   console.log('[SIP] Calling:', target, '| video:', isVideo);
-
-  if (remoteAudio) remoteAudio.srcObject = null;
 
   const options = {
     mediaConstraints: { audio: true, video: isVideo },
@@ -203,33 +228,24 @@ export function makeCall({ targetNumber, isVideo = false, onCallStatus, remoteVi
 
   currentSession = ua.call(target, options);
   attachPeerConnection(currentSession, remoteVideoRef, isVideo);
-  attachSessionEvents(currentSession, onCallStatus, localVideoRef, isVideo);
-
-  if (isVideo) {
-    currentSession.on('confirmed', () => {
-      _attachLocalStream(localVideoRef);
-    });
-  }
-
+  attachSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, isVideo);
   return currentSession;
 }
 
 export function answerCall(isVideo = false, remoteVideoRef = null, localVideoRef = null, onCallStatus = null) {
   if (!currentSession) return;
-  console.log('[SIP] Answering | video:', isVideo);
-
-  if (remoteAudio) remoteAudio.srcObject = null;
+  console.log('[SIP] Answering call | video:', isVideo);
 
   attachPeerConnection(currentSession, remoteVideoRef, isVideo);
 
   navigator.mediaDevices.getUserMedia({ audio: true, video: isVideo })
-    .then(stream => {
-      console.log('[SIP] Got local stream | tracks:', stream.getTracks().map(t => t.kind));
-      localStreamRef = stream;
+    .then(localStream => {
+      console.log('[SIP] Got local stream for answer | tracks:', localStream.getTracks().length);
 
       if (isVideo && localVideoRef?.current) {
-        localVideoRef.current.srcObject = stream;
+        localVideoRef.current.srcObject = localStream;
         localVideoRef.current.play().catch(e => console.error('[VIDEO] Local play error:', e));
+        console.log('[SIP] Local video attached for answerer');
       }
 
       currentSession.answer({
@@ -241,15 +257,15 @@ export function answerCall(isVideo = false, remoteVideoRef = null, localVideoRef
         },
       });
 
-      attachSessionEvents(currentSession, onCallStatus, localVideoRef, isVideo);
+      attachSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, isVideo);
     })
     .catch(err => {
-      console.error('[SIP] getUserMedia failed:', err);
+      console.error('[SIP] getUserMedia failed for answer:', err);
       currentSession.answer({
         mediaConstraints: { audio: true, video: false },
         pcConfig: { iceServers: ICE_SERVERS },
       });
-      attachSessionEvents(currentSession, onCallStatus, localVideoRef, false);
+      attachSessionEvents(currentSession, onCallStatus, remoteVideoRef, localVideoRef, false);
     });
 }
 
@@ -264,7 +280,6 @@ export function endCall() {
   try { currentSession.terminate(); } catch {}
   currentSession = null;
   if (remoteAudio) remoteAudio.srcObject = null;
-  _cleanupLocalStream();
 }
 
 export function toggleMute(muted) {
@@ -279,18 +294,21 @@ export function toggleMute(muted) {
 }
 
 export function toggleCamera(videoOn) {
-  if (!localStreamRef) {
-    console.warn('[SIP] No local stream for camera toggle');
-    return;
+  if (!currentSession) return;
+  if (videoOn) {
+    currentSession.unmute({ audio: false, video: true });
+    console.log('[SIP] Camera on');
+  } else {
+    currentSession.mute({ audio: false, video: true });
+    console.log('[SIP] Camera off');
   }
-  localStreamRef.getVideoTracks().forEach(track => {
-    track.enabled = videoOn;
-    console.log('[SIP] Camera track', videoOn ? 'enabled' : 'disabled');
-  });
 }
 
 export function disconnectSIP() {
-  if (ua) { ua.stop(); ua = null; }
+  if (ua) {
+    ua.stop();
+    ua = null;
+  }
 }
 
 export function isRegistered() {
@@ -300,21 +318,20 @@ export function isRegistered() {
 async function _attachLocalStream(localRef) {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    localStreamRef = stream;
     if (localRef?.current) {
       localRef.current.srcObject = stream;
       localRef.current.play().catch(e => console.error('[VIDEO] Local play error:', e));
-      console.log('[SIP] Local camera attached for caller');
+      console.log('[SIP] Local camera attached');
     }
   } catch (e) {
     console.error('[SIP] Camera error:', e);
   }
 }
 
-function _cleanupLocalStream() {
-  if (localStreamRef) {
-    localStreamRef.getTracks().forEach(t => t.stop());
-    localStreamRef = null;
+function _cleanupStream(localRef) {
+  if (localRef?.current?.srcObject) {
+    localRef.current.srcObject.getTracks().forEach(t => t.stop());
+    localRef.current.srcObject = null;
     console.log('[SIP] Local stream cleaned');
   }
 }
