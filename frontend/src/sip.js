@@ -171,7 +171,9 @@ export function initSIP({ number, password, onStatus, onIncoming, onCallEnd }) {
 
       setTimeout(() => {
         if (session.status === JsSIP.RTCSession.C.STATUS_WAITING_FOR_ANSWER) {
+          console.log('[SIP] Auto-reject: no answer after 30s');
           session.terminate();
+          onCallEndGlobal?.();
         }
       }, 30000);
     }
